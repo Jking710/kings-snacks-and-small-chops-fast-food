@@ -1,0 +1,11 @@
+{
+  "name": "kings-snacks-and-small-chops-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "server": "npm --prefix backend run server",
+    "server:dev": "npm --prefix backend run server:dev",
+    "install-all": "npm --prefix frontend install && npm --prefix backend install"
+  }
+}

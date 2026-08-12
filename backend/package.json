@@ -1,0 +1,1 @@
+{"name":"backend","version":"0.0.0","private":true,"type":"module","scripts":{"server":"node server.js","server:dev":"nodemon server.js"},"dependencies":{"express":"^5.2.1","mongoose":"^9.9.2","dotenv":"^17.4.2"}}
