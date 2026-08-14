@@ -17,6 +17,7 @@
     "@tailwindcss/vite": "^4.1.16",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "libphonenumber-js": "^1.13.10",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.562.0",
     "mongodb": "^7.5.0",

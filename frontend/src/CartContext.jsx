@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { CartContext } from "./CartContextData.js";
 
 export function CartProvider({ children }) {
@@ -53,4 +53,9 @@ export function CartProvider({ children }) {
     },
     children,
   );
+}
+
+// Custom hook to consume cart context
+export function useCart() {
+  return useContext(CartContext);
 }

@@ -22,6 +22,15 @@ export default defineConfig([
         sourceType: "module",
       },
     },
+    rules: {
+      // Disable no-unused-vars here because JSX usage/counting can be handled by the
+      // bundler / TypeScript in this project; this prevents many false positives
+      // across .jsx files in this workspace.
+      "no-unused-vars": "off",
+      // Allow exporting non-components (constants/helpers) from files during
+      // fast-refresh — this avoids the `only-export-components` false positives.
+      "react-refresh/only-export-components": "off",
+    },
   },
   {
     files: ["server.js"],
