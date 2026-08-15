@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 
 // Auth routes
 import authRoutes from "./routes/authRoutes.js";
+import groupOrderRoutes from "./routes/groupOrderRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -135,6 +136,7 @@ app.use(cookieParser()); // Parse HttpOnly cookies
 // ─── Routes ───────────────────────────────────────────────────────────────────
 // Auth routes
 app.use("/api/auth", authRoutes);
+app.use("/api/group-orders", groupOrderRoutes);
 
 // Inspect router internal stack for debugging
 try {

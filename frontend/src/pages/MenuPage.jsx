@@ -1,262 +1,9 @@
 import React, { useState } from "react";
 import { ShoppingCart, Search, Star, Plus, Check } from "lucide-react";
-import { useCart } from "../useCart.js";
+import { useCart } from "../CartContext.jsx";
 import { Link } from "react-router-dom";
 
-import meatPieImg from "../assets/meat_pie.jpeg";
-import springRollsImg from "../assets/spring_rolls.jpeg";
-import puffPuffImg from "../assets/puff_puff.jpeg";
-import zoboImg from "../assets/zobo_drink.jpeg";
-import fishRollsImg from "../assets/fish_rolls.jpeg";
-
-const menuItems = [
-  // Pizzas
-  {
-    id: 1,
-    name: "Pepperoni Pizza",
-    category: "Pizza",
-    price: 4500,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&h=300&fit=crop&auto=format",
-    desc: "Classic pepperoni with mozzarella cheese and rich tomato sauce on a crispy crust.",
-    tag: "Best Seller",
-  },
-  {
-    id: 2,
-    name: "BBQ Chicken Pizza",
-    category: "Pizza",
-    price: 4800,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop&auto=format",
-    desc: "Smoky BBQ sauce, tender chicken chunks, red onions and melted cheddar.",
-    tag: "Popular",
-  },
-  {
-    id: 3,
-    name: "Veggie Supreme Pizza",
-    category: "Pizza",
-    price: 3800,
-    rating: 4,
-    img: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop&auto=format",
-    desc: "Loaded with bell peppers, mushrooms, olives, onions and fresh tomatoes.",
-    tag: null,
-  },
-  // Burgers
-  {
-    id: 4,
-    name: "Classic Hamburger",
-    category: "Burgers",
-    price: 3200,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop&auto=format",
-    desc: "Juicy beef patty, fresh lettuce, tomatoes, cheese and our signature sauce.",
-    tag: "Best Seller",
-  },
-  {
-    id: 5,
-    name: "Double Smash Burger",
-    category: "Burgers",
-    price: 4200,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=400&h=300&fit=crop&auto=format",
-    desc: "Two smashed beef patties, American cheese, pickles, caramelised onions.",
-    tag: "Popular",
-  },
-  {
-    id: 6,
-    name: "Chicken Burger",
-    category: "Burgers",
-    price: 3000,
-    rating: 4,
-    img: "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=400&h=300&fit=crop&auto=format",
-    desc: "Crispy fried chicken fillet, coleslaw and honey-mustard mayo in a brioche bun.",
-    tag: null,
-  },
-  // Shawarma & Wraps
-  {
-    id: 7,
-    name: "Chicken Shawarma",
-    category: "Shawarma",
-    price: 2800,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=400&h=300&fit=crop&auto=format",
-    desc: "Marinated chicken, garlic sauce, pickled veggies and fresh herbs in warm flatbread.",
-    tag: "Best Seller",
-  },
-  {
-    id: 8,
-    name: "Beef Shawarma",
-    category: "Shawarma",
-    price: 3200,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1561651823-34feb02250e4?w=400&h=300&fit=crop&auto=format",
-    desc: "Seasoned beef strips, tahini, tomatoes and crunchy cabbage wrapped tight.",
-    tag: null,
-  },
-  {
-    id: 9,
-    name: "Taco",
-    category: "Shawarma",
-    price: 2500,
-    rating: 4,
-    img: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=400&h=300&fit=crop&auto=format",
-    desc: "Crunchy taco shell stuffed with spiced beef, cheese, salsa and sour cream.",
-    tag: null,
-  },
-  {
-    id: 10,
-    name: "Burrito",
-    category: "Shawarma",
-    price: 3000,
-    rating: 4,
-    img: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=400&h=300&fit=crop&auto=format",
-    desc: "Large flour tortilla packed with rice, beans, beef, guacamole and salsa.",
-    tag: "Popular",
-  },
-  // Small Chops
-  {
-    id: 11,
-    name: "Spring Rolls (6pcs)",
-    category: "Small Chops",
-    price: 1800,
-    rating: 5,
-    img: springRollsImg, // ✅ Your photo — thick golden-brown stacked spring rolls
-    desc: "Golden crispy spring rolls filled with seasoned vegetables and minced meat.",
-    tag: "Popular",
-  },
-  {
-    id: 12,
-    name: "Samosa (6pcs)",
-    category: "Small Chops",
-    price: 1500,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=300&fit=crop&auto=format",
-    desc: "Flaky pastry triangles stuffed with spiced potatoes and minced beef.",
-    tag: null,
-  },
-  {
-    id: 13,
-    name: "Puff Puff (10pcs)",
-    category: "Small Chops",
-    price: 1200,
-    rating: 5,
-    img: puffPuffImg, // ✅ Your photo — pile of round golden-brown fried dough balls
-    desc: "Soft, pillowy Nigerian fried dough — lightly sweet and completely irresistible.",
-    tag: "Best Seller",
-  },
-  {
-    id: 14,
-    name: "Peppered Chicken Wings",
-    category: "Small Chops",
-    price: 3500,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=400&h=300&fit=crop&auto=format",
-    desc: "Juicy chicken wings coated in our fiery pepper sauce. Served with dip.",
-    tag: "Spicy 🌶️",
-  },
-  {
-    id: 15,
-    name: "Fish Rolls (4pcs)",
-    category: "Small Chops",
-    price: 1600,
-    rating: 4,
-    img: fishRollsImg, // ✅ Your photo — long golden-brown fried Nigerian fish rolls on a plate
-    desc: "Crispy pastry rolls filled with seasoned fish and onions.",
-    tag: null,
-  },
-  // Pastries & Sweets
-  {
-    id: 16,
-    name: "Glazed Donut",
-    category: "Pastries",
-    price: 800,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&h=300&fit=crop&auto=format",
-    desc: "Classic glazed donut — light, fluffy, and covered in a sweet vanilla glaze.",
-    tag: null,
-  },
-  {
-    id: 17,
-    name: "Chocolate Cake Slice",
-    category: "Pastries",
-    price: 1500,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&h=300&fit=crop&auto=format",
-    desc: "Rich moist chocolate cake with ganache frosting. A must-try for chocoholics.",
-    tag: "Popular",
-  },
-  {
-    id: 18,
-    name: "Pancake Stack",
-    category: "Pastries",
-    price: 1800,
-    rating: 4,
-    img: "https://images.unsplash.com/photo-1528207776546-365bb710ee93?w=400&h=300&fit=crop&auto=format",
-    desc: "Three fluffy pancakes served with maple syrup, butter and fresh berries.",
-    tag: null,
-  },
-  {
-    id: 19,
-    name: "Meat Pie",
-    category: "Pastries",
-    price: 600,
-    rating: 5,
-    img: meatPieImg, // ✅ Your photo — golden half-moon pastry with crimped fork edges
-    desc: "Buttery pastry shell filled with minced beef, diced potatoes and carrots. Baked to a perfect golden brown.",
-    tag: "Best Seller",
-  },
-  {
-    id: 20,
-    name: "Cupcake",
-    category: "Pastries",
-    price: 900,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1486427944299-d1955d23e34d?w=400&h=300&fit=crop&auto=format",
-    desc: "Moist, fluffy cupcakes topped with swirled buttercream frosting. Available in vanilla, red velvet, chocolate fudge, strawberry, and lemon zest flavours.",
-    tag: "Popular",
-  },
-  // Drinks
-  {
-    id: 21,
-    name: "Coca-Cola (50cl)",
-    category: "Drinks",
-    price: 400,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&h=300&fit=crop&auto=format",
-    desc: "Ice-cold Coca-Cola to complement your meal perfectly.",
-    tag: null,
-  },
-  {
-    id: 22,
-    name: "Fresh Zobo Drink",
-    category: "Drinks",
-    price: 600,
-    rating: 5,
-    img: zoboImg, // ✅ Your photo — deep red hibiscus zobo in a glass with dried petals
-    desc: "Chilled hibiscus drink infused with ginger and a hint of citrus.",
-    tag: "Nigerian Fave",
-  },
-  {
-    id: 23,
-    name: "Bottled Water",
-    category: "Drinks",
-    price: 200,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&h=300&fit=crop&auto=format",
-    desc: "Pure chilled table water — always essential.",
-    tag: null,
-  },
-  {
-    id: 24,
-    name: "Chapman Cocktail",
-    category: "Drinks",
-    price: 1200,
-    rating: 5,
-    img: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&h=300&fit=crop&auto=format",
-    desc: "Nigeria's favourite party drink — a fruity, refreshing non-alcoholic cocktail.",
-    tag: "Popular",
-  },
-];
+import menuItems from "../data/menuItems.js";
 
 const categories = [
   "All",
@@ -377,6 +124,33 @@ function MenuPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 pt-8">
+        <Link
+          to="/build-snack-box"
+          className="block bg-linear-to-r from-orange-600 to-rose-600 rounded-2xl p-6 lg:p-8 text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.01]"
+        >
+          <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+            <div>
+              <p className="text-orange-100 text-sm font-semibold uppercase tracking-wider">
+                Create your own combination
+              </p>
+
+              <h2 className="text-2xl lg:text-3xl font-bold font-['Georgia'] mt-1">
+                🎁 Build Your Snack Box
+              </h2>
+
+              <p className="text-orange-50 mt-2 text-sm lg:text-base">
+                Pick your favorite snacks and create a box made for you.
+              </p>
+            </div>
+
+            <span className="bg-white text-orange-600 px-6 py-3 rounded-xl font-bold whitespace-nowrap">
+              Build My Box →
+            </span>
+          </div>
+        </Link>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-10">

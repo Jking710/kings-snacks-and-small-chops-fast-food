@@ -27,6 +27,12 @@ import CartPage from "./pages/CartPage.jsx";
 import ContactPage from "./pages/ContactPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 
+//special features
+import BuildSnackBox from "./pages/BuildSnackBox.jsx";
+import SmartBudget from "./pages/SmartBudget.jsx";
+import GroupOrdering from "./pages/GroupOrdering.jsx";
+import SurpriseMe from "./pages/SurpriseMe.jsx";
+
 // Auth protection
 import ProtectedRoute from "./ProtectedRoute.jsx";
 
@@ -91,6 +97,7 @@ function App() {
               </AuthLayout>
             }
           />
+
           <Route
             path="/verify-otp"
             element={
@@ -122,6 +129,39 @@ function App() {
             element={
               <Layout>
                 <MenuPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/build-snack-box"
+            element={
+              <Layout>
+                <BuildSnackBox />
+              </Layout>
+            }
+          />
+          <Route
+            path="/smart-budget"
+            element={
+              <Layout>
+                <SmartBudget />
+              </Layout>
+            }
+          />
+          <Route
+            path="/group-ordering"
+            element={
+              <Layout>
+                <GroupOrdering />
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/surprise-me"
+            element={
+              <Layout>
+                <SurpriseMe />
               </Layout>
             }
           />

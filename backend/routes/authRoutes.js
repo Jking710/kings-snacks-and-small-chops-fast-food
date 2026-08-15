@@ -1,11 +1,12 @@
 import express from "express";
-import {
-  register,
-  login,
-  googleAuth,
-  getMe,
-  logout,
-} from "../controllers/authController.js";
+  import {
+    register,
+    login,
+    googleAuth,
+    getMe,
+    logout,
+    updatePhone,
+  } from "../controllers/authController.js";
 import {
   forgotPassword,
   verifyOTP,
@@ -21,6 +22,7 @@ router.post("/login", login);
 router.post("/google", googleAuth);
 router.post("/logout", logout);
 router.get("/me", authMiddleware, getMe);
+router.put("/phone", authMiddleware, updatePhone);
 
 // ─── Forgot password routes ────────────────────────────────────────────────────
 router.post("/forgot-password", forgotPassword);   // Step 1: send OTP

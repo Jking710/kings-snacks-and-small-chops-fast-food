@@ -491,6 +491,56 @@ export const getMe = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// UPDATE PHONE NUMBER
+// PUT /api/auth/phone
+// ─────────────────────────────────────────────────────────────
+
+export const updatePhone = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({
+        message: "Phone number is required.",
+      });
+    }
+
+    const cleanedPhone = phone.trim();
+
+    // Basic phone number validation
+    if (!/^[0-9+\-\s()]{7,20}$/.test(cleanedPhone)) {
+      return res.status(400).json({
+        message: "Please enter a valid phone number.",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found.",
+      });
+    }
+
+    user.phone = cleanedPhone;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Phone number updated successfully.",
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    console.error("Update phone error:", error);
+
+    return res.status(500).json({
+      message: "Could not update phone number. Please try again.",
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
 // LOGOUT
 // POST /api/auth/logout
 // ─────────────────────────────────────────────────────────────

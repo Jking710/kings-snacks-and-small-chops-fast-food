@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCrown } from "@fortawesome/free-solid-svg-icons";
 import { Menu, ShoppingCart, X, User, LogOut, ChevronDown } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, NavLink } from "react-router-dom";
 import { useCart } from "../CartContext.jsx";
 import { useAuth } from "../AuthContext.jsx";
 
@@ -10,8 +10,10 @@ function Navbar() {
   const [header, setHeader] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
   const { totalItems } = useCart();
   const { isAuthenticated, user, logout } = useAuth();
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -19,11 +21,12 @@ function Navbar() {
     const handleScroll = () => {
       window.scrollY > 50 ? setHeader(true) : setHeader(false);
     };
+
     window.addEventListener("scroll", handleScroll);
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close menus on route change
   useEffect(() => {
     setMobileNavOpen(false);
     setUserMenuOpen(false);
@@ -54,12 +57,13 @@ function Navbar() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-10">
-        {/* ── Mobile Nav ─────────────────────────────────────────────── */}
+        {/* MOBILE NAV */}
         <div className="flex md:hidden justify-between items-center">
           <Link to="/" className="font-semibold flex gap-1 items-center">
             <div className="text-yellow-600 text-2xl">
               <FontAwesomeIcon icon={faCrown} />
             </div>
+
             <h2 className="font-['Georgia'] font-bold text-xl">
               <span className="hover:text-yellow-600">Kings</span>
               <span className="text-yellow-600 ml-1.5 hover:text-black">
@@ -67,18 +71,21 @@ function Navbar() {
               </span>
             </h2>
           </Link>
+
           <div className="flex items-center gap-3">
             <Link
               to="/cart"
               className="relative text-gray-700 hover:text-orange-600 transition-colors"
             >
               <ShoppingCart className="w-6 h-6" />
+
               {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
                   {totalItems}
                 </span>
               )}
             </Link>
+
             <button
               onClick={() => setMobileNavOpen((prev) => !prev)}
               className="cursor-pointer text-gray-700 hover:text-orange-600 transition-colors"
@@ -92,7 +99,7 @@ function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Dropdown */}
+        {/* MOBILE MENU */}
         {mobileNavOpen && (
           <ul className="md:hidden p-4 bg-orange-100 rounded-b-xl font-semibold text-lg mt-1 flex flex-col gap-1 text-center border-t border-orange-200">
             {navLinks.map((link) => (
@@ -109,6 +116,57 @@ function Navbar() {
                 </Link>
               </li>
             ))}
+
+            {/* MOBILE SPECIAL FEATURES */}
+            <li className="mt-1">
+             
+              <div className="flex flex-col gap-1">
+                <Link
+                  to="/build-snack-box"
+                  className={`block py-2 px-4 rounded-lg transition-all ${
+                    isActive("/build-snack-box")
+                      ? "bg-orange-600 text-white"
+                      : "hover:text-rose-500 hover:bg-orange-200"
+                  }`}
+                >
+                  Build Your Snack Box
+                </Link>
+
+                <Link
+                  to="/smart-budget"
+                  className={`block py-2 px-4 rounded-lg transition-all ${
+                    isActive("/smart-budget")
+                      ? "bg-orange-600 text-white"
+                      : "hover:text-rose-500 hover:bg-orange-200"
+                  }`}
+                >
+                  Smart Budget
+                </Link>
+                
+                <Link
+                  to="/group-ordering"
+                  className={`block py-2 px-4 rounded-lg transition-all ${
+                    isActive("/group-ordering")
+                      ? "bg-orange-600 text-white"
+                      : "hover:text-rose-500 hover:bg-orange-200"
+                  }`}
+                >
+                  Group Ordering
+                </Link>
+                
+                <Link
+                  to="/surprise-me"
+                  className={`block py-2 px-4 rounded-lg transition-all ${
+                    isActive("/surprise-me")
+                      ? "bg-orange-600 text-white"
+                      : "hover:text-rose-500 hover:bg-orange-200"
+                  }`}
+                >
+                  Surprise Me Order
+                </Link>
+              </div>
+            </li>
+
             {isAuthenticated ? (
               <>
                 <li>
@@ -119,6 +177,7 @@ function Navbar() {
                     My Profile
                   </Link>
                 </li>
+
                 <li>
                   <button
                     onClick={handleLogout}
@@ -141,12 +200,14 @@ function Navbar() {
           </ul>
         )}
 
-        {/* ── Desktop Nav ─────────────────────────────────────────────── */}
+        {/* DESKTOP NAV */}
         <div className="hidden md:flex justify-between items-center">
+          {/* LOGO */}
           <Link to="/" className="font-semibold flex gap-1 items-center">
             <div className="text-yellow-600 text-3xl">
               <FontAwesomeIcon icon={faCrown} />
             </div>
+
             <h2 className="font-['Georgia'] font-bold text-2xl">
               <span className="hover:text-yellow-600">Kings</span>
               <span className="text-yellow-600 ml-1.5 hover:text-black">
@@ -156,6 +217,7 @@ function Navbar() {
           </Link>
 
           <div className="flex items-center gap-x-6">
+            {/* NAV LINKS */}
             <ul className="flex items-center cursor-pointer gap-6 text-black font-semibold">
               {navLinks.map((link) => (
                 <li key={link.to}>
@@ -171,14 +233,107 @@ function Navbar() {
                   </Link>
                 </li>
               ))}
+
+              {/* SPECIAL FEATURES DROPDOWN */}
+              <li className="relative group">
+                <button
+                  type="button"
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
+                    isActive("/build-snack-box") || isActive("/smart-budget")
+                      ? "text-rose-500 bg-orange-100"
+                      : "hover:text-rose-500 hover:bg-black/5"
+                  }`}
+                >
+                  Special Features
+                  <ChevronDown className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180" />
+                </button>
+
+                {/* DROPDOWN */}
+                <div className="absolute left-0 top-full pt-3 w-64 hidden group-hover:block z-50">
+                  <div className="bg-white/10 backdrop-blur-md border border-orange-100/70 rounded-xl shadow-xl overflow-hidden">
+                    {/* BUILD SNACK BOX */}
+                    <Link
+                      to="/build-snack-box"
+                      className={`flex items-center gap-3 px-4 py-4 transition-colors ${
+                        isActive("/build-snack-box")
+                          ? "bg-orange-50 text-orange-600"
+                          : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                      }`}
+                    >
+                      <div>
+                        <p className="font-bold text-sm">
+                          Build Your Snack Box
+                        </p>
+
+                        <p className="text-xs text-gray-400 mt-1">
+                          Create your own snack box.
+                        </p>
+                      </div>
+                    </Link>
+
+                    {/* SMART BUDGET */}
+                    <Link
+                      to="/smart-budget"
+                      className={`flex items-center gap-3 px-4 py-4 border-t border-gray-100 transition-colors ${
+                        isActive("/smart-budget")
+                          ? "bg-orange-50 text-orange-600"
+                          : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                      }`}
+                    >
+                      <div>
+                        <p className="font-bold text-sm">Smart Budget</p>
+
+                        <p className="text-xs text-gray-400 mt-1">
+                          Find snacks within your budget.
+                        </p>
+                      </div>
+                    </Link>
+
+                    <Link
+                      to="/group-ordering"
+                      className={`block py-2 text-sm font-bold px-4 rounded-lg transition-all ${
+                        isActive("/group-ordering")
+                          ? "bg-orange-600 text-white"
+                          : "hover:text-rose-500 hover:bg-orange-200"
+                      }`}
+                    >
+                      <div>
+                        <p className="font-bold text-sm">Group Ordering</p>
+
+                        <p className="text-xs text-gray-400 mt-1">
+                          Order snacks with friends.
+                        </p>
+                      </div>
+                    </Link>
+
+                         <Link
+                      to="/surprise-me"
+                      className={`block py-2 text-sm font-bold px-4 rounded-lg transition-all ${
+                        isActive("/surprise-me")
+                          ? "bg-orange-600 text-white"
+                          : "hover:text-rose-500 hover:bg-orange-200"
+                      }`}
+                    >
+                      <div>
+                        <p className="font-bold text-sm">Surprise Me Order</p>
+
+                        <p className="text-xs text-gray-400 mt-1">
+                          Having trouble ordering? don't worry, we got you covered.
+                        </p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+              </li>
             </ul>
 
-            {/* Cart */}
+            {/* CART */}
             <Link
               to="/cart"
               className="relative text-gray-700 hover:text-orange-600 transition-colors"
             >
               <ShoppingCart className="w-6 h-6" />
+
               {totalItems > 0 && (
                 <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
                   {totalItems}
@@ -186,14 +341,13 @@ function Navbar() {
               )}
             </Link>
 
-            {/* Auth section */}
+            {/* AUTH SECTION */}
             {isAuthenticated && user ? (
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen((prev) => !prev)}
                   className="flex items-center gap-2 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-xl hover:bg-orange-100 transition-all cursor-pointer"
                 >
-                  {/* Avatar */}
                   {user.profilePicture ? (
                     <img
                       src={user.profilePicture}
@@ -205,23 +359,29 @@ function Navbar() {
                       {initials}
                     </div>
                   )}
+
                   <span className="text-sm font-semibold text-gray-700">
                     {user.firstName}
                   </span>
+
                   <ChevronDown
-                    className={`w-4 h-4 text-gray-500 transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
+                    className={`w-4 h-4 text-gray-500 transition-transform ${
+                      userMenuOpen ? "rotate-180" : ""
+                    }`}
                   />
                 </button>
 
-                {/* Dropdown */}
+                {/* USER DROPDOWN */}
                 {userMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-orange-100 rounded-xl shadow-lg py-2 z-50">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-xs text-gray-500">Signed in as</p>
+
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {user.email}
                       </p>
                     </div>
+
                     <Link
                       to="/profile"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
@@ -229,6 +389,7 @@ function Navbar() {
                       <User className="w-4 h-4" />
                       My Profile
                     </Link>
+
                     <Link
                       to="/cart"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
@@ -236,6 +397,7 @@ function Navbar() {
                       <ShoppingCart className="w-4 h-4" />
                       My Cart {totalItems > 0 && `(${totalItems})`}
                     </Link>
+
                     <div className="border-t border-gray-100 mt-1 pt-1">
                       <button
                         onClick={handleLogout}
