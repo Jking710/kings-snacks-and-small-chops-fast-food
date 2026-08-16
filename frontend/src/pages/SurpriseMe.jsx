@@ -171,7 +171,7 @@ function SurpriseMe() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-linear-to-r from-yellow-600 to-orange-600 text-white py-14 px-6">
+      <div className="bg-linear-to-br from-[#7c2d12] via-[#c2410c] to-[#9f1239] text-white py-14 px-6">
         <div className="max-w-5xl mx-auto">
           <Link
             to="/menu"

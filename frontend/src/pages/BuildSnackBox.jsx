@@ -193,18 +193,18 @@ function BuildSnackBox() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <section className="bg-linear-to-r from-yellow-600 to-orange-600 text-white">
+      <section className="bg-linear-to-br from-[#2b2118] via-[#6f3d29] to-[#c45b2c] text-white">
         <div className="max-w-7xl mx-auto px-5 py-10">
           <Link
             to="/menu"
-            className="inline-flex items-center gap-2 text-orange-100 hover:text-white mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-[#f6d4bd] hover:text-white mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Menu
           </Link>
 
           <div className="max-w-3xl">
-            <p className="text-orange-100 uppercase tracking-widest text-sm font-semibold mb-2">
+            <p className="text-[#f6d4bd] uppercase tracking-widest text-sm font-semibold mb-2">
               Customize your order
             </p>
 
@@ -212,7 +212,7 @@ function BuildSnackBox() {
               Build Your Snack Box 🎁
             </h1>
 
-            <p className="text-orange-50 mt-4 text-base lg:text-lg">
+            <p className="text-[#fff0e5] mt-4 text-base lg:text-lg">
               Pick your favorite snacks and create a box made for you.
             </p>
           </div>
@@ -283,11 +283,9 @@ function BuildSnackBox() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      
-
                       <div>
                         <p className="font-bold text-gray-800">
-                        Gain Weight
+                          Gain Weight
                         </p>
 
                         <p className="text-xs text-gray-500 mt-1">
@@ -311,8 +309,6 @@ function BuildSnackBox() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                  
-
                       <div>
                         <p className="font-bold text-gray-800">
                           Balanced Options

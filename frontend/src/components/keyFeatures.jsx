@@ -13,7 +13,7 @@ function keyFeatures() {
         </div>
 
         <div className="lg:w-1/2 mt-12 flex flex-col space-y-3 lg:space-y-7 justify-center ">
-          <h2 className="text-orange-600 mb-5 font-semibold text-sm lg:text-xl">
+          <h2 className="text-[#6b4226] mb-5 font-semibold text-sm lg:text-xl">
             KEY FEATURES
           </h2>
           <h1 className=" text-3xl lg:text-[43px] font-bold">

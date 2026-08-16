@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -123,35 +123,35 @@ function GroupOrdering() {
     }
   };
 
-  const refreshGroup = async () => {
-    if (!group?.groupCode) return;
+ const refreshGroup = useCallback(async () => {
+  if (!group?.groupCode) return;
 
-    try {
-      setRefreshing(true);
-      setError("");
+  try {
+    setRefreshing(true);
+    setError("");
 
-      const data = await request(
-        `/api/group-orders/${group.groupCode}`
-      );
+    const data = await request(
+      `/api/group-orders/${group.groupCode}`
+    );
 
-      setGroup(data.group);
-      setGroupTotal(data.total);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+    setGroup(data.group);
+    setGroupTotal(data.total);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setRefreshing(false);
+  }
+}, [group?.groupCode]);
 
-  useEffect(() => {
-    if (!group?.groupCode) return;
+useEffect(() => {
+  if (!group?.groupCode) return;
 
-    const interval = setInterval(() => {
-      refreshGroup();
-    }, 5000);
+  const interval = setInterval(() => {
+    refreshGroup();
+  }, 5000);
 
-    return () => clearInterval(interval);
-  }, [group?.groupCode]);
+  return () => clearInterval(interval);
+}, [group?.groupCode, refreshGroup]);
 
   const calculateTotal = (currentGroup) => {
     return currentGroup.members.reduce((total, member) => {
@@ -301,7 +301,7 @@ function GroupOrdering() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      <div className="bg-linear-to-r from-yellow-600 to-orange-600 text-white">
+      <div className="bg-linear-to-br from-[#7c2d12] via-[#c2410c] to-[#9f1239] text-white">
         <div className="max-w-7xl mx-auto px-5 py-10">
 
           <Link
@@ -588,6 +588,7 @@ function GroupOrdering() {
                     <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
                       {group.members.length}
                     </span>
+
                   </div>
 
                   <div className="space-y-3 mb-6">
@@ -608,6 +609,7 @@ function GroupOrdering() {
                             <div>
                               <p className="font-semibold text-gray-800 text-sm">
                                 {member.firstName} {member.lastName}
+
                                 {member.user?._id === user?._id && (
                                   <span className="text-orange-600 ml-1">
                                     (You)
