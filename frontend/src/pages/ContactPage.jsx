@@ -31,10 +31,10 @@ const contacts = [
     color: "bg-orange-50 border-orange-200 text-orange-700",
     iconColor: "text-orange-600",
     items: [
-      { label: "General Inquiries", value: "hello@kingschops.ng" },
-      { label: "Orders & Support", value: "orders@kingschops.ng" },
-      { label: "Business / Partnerships", value: "partner@kingschops.ng" },
-      { label: "Feedback & Reviews", value: "feedback@kingschops.ng" },
+      { label: "General Inquiries", value: "kingschops247@gmail.com" },
+      { label: "Orders & Support", value: "kingschops247@gmail.com" },
+      { label: "Business / Partnerships", value: "kingschops247@gmail.com" },
+      { label: "Feedback & Reviews", value: "kingschops247@gmail.com" },
     ],
   },
   {
@@ -55,9 +55,9 @@ const contacts = [
     color: "bg-yellow-50 border-yellow-200 text-yellow-700",
     iconColor: "text-yellow-600",
     items: [
-      { label: "Monday – Friday", value: "7:00 AM – 11:00 PM" },
-      { label: "Saturday", value: "9:00 AM – 12:00 AM (Midnight)" },
-      { label: "Sunday", value: "10:00 AM – 10:00 PM" },
+      { label: "Monday – Friday", value: "7:00 AM – 9:00 PM" },
+      { label: "Saturday", value: "9:00 AM – 6:00 pm (Midnight)" },
+      { label: "Sunday", value: "10:00 AM – 6:00 PM" },
       { label: "Public Holidays", value: "11:00 AM – 9:00 PM" },
     ],
   },
@@ -412,7 +412,7 @@ function ContactPage() {
                 </p>
 
                 <p className="text-sm text-gray-500">
-                  Available Mon–Fri, 8am–10pm
+                  Available Mon–Fri, 8am–6pm
                 </p>
 
                 <span className="inline-block mt-1 bg-green-400 text-white text-xs px-2 py-0.5 rounded-full font-semibold">

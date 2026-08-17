@@ -23,16 +23,45 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [
-        /^\S+@\S+\.\S+$/,
-        "Please enter a valid email address",
-      ],
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     },
 
     phone: {
       type: String,
       default: "",
       trim: true,
+    },
+
+    country: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    countryCode: {
+      type: String,
+      default: "",
+      trim: true,
+      uppercase: true,
+    },
+
+    state: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    capital: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    address: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: [300, "Address cannot exceed 300 characters"],
     },
 
     password: {
@@ -58,10 +87,6 @@ const UserSchema = new mongoose.Schema(
       default: "local",
     },
 
-    // ─────────────────────────────────────────────
-    // PASSWORD RESET OTP
-    // ─────────────────────────────────────────────
-
     resetPasswordOTP: {
       type: String,
       default: undefined,
@@ -73,10 +98,6 @@ const UserSchema = new mongoose.Schema(
       default: undefined,
       select: false,
     },
-
-    // ─────────────────────────────────────────────
-    // PASSWORD RESET TOKEN
-    // ─────────────────────────────────────────────
 
     resetPasswordToken: {
       type: String,
@@ -90,58 +111,32 @@ const UserSchema = new mongoose.Schema(
       select: false,
     },
   },
-
   {
     timestamps: true,
   },
 );
 
-
-// ─────────────────────────────────────────────
-// HASH PASSWORD BEFORE SAVING
-// ─────────────────────────────────────────────
-
 UserSchema.pre("save", async function () {
-  // Google users don't have a password
   if (!this.password) {
     return;
   }
 
-  // Don't hash password again if it hasn't changed
   if (!this.isModified("password")) {
     return;
   }
 
   const salt = await bcrypt.genSalt(12);
 
-  this.password = await bcrypt.hash(
-    this.password,
-    salt
-  );
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-
-// ─────────────────────────────────────────────
-// COMPARE PASSWORD
-// ─────────────────────────────────────────────
-
-UserSchema.methods.comparePassword = async function (
-  candidatePassword
-) {
+UserSchema.methods.comparePassword = async function (candidatePassword) {
   if (!this.password) {
     return false;
   }
 
-  return bcrypt.compare(
-    candidatePassword,
-    this.password
-  );
+  return bcrypt.compare(candidatePassword, this.password);
 };
-
-
-// ─────────────────────────────────────────────
-// SAFE USER OBJECT
-// ─────────────────────────────────────────────
 
 UserSchema.methods.toSafeObject = function () {
   return {
@@ -150,15 +145,17 @@ UserSchema.methods.toSafeObject = function () {
     lastName: this.lastName,
     email: this.email,
     phone: this.phone,
+    country: this.country,
+    countryCode: this.countryCode,
+    state: this.state,
+    capital: this.capital,
+    address: this.address,
     profilePicture: this.profilePicture,
     authProvider: this.authProvider,
     createdAt: this.createdAt,
   };
 };
 
-
-const User =
-  mongoose.models.User ||
-  mongoose.model("User", UserSchema);
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
 export default User;

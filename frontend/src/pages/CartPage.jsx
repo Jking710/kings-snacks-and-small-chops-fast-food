@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   ShoppingCart,
   Trash2,
   Plus,
   Minus,
   ArrowLeft,
-  CheckCircle,
 } from "lucide-react";
 import { useCart } from "../useCart.js";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function CartPage() {
   const {
@@ -20,77 +19,33 @@ function CartPage() {
     totalPrice,
   } = useCart();
 
-  const [ordered, setOrdered] = useState(false);
+  const navigate = useNavigate();
 
-  const deliveryFee = cartItems.length > 0 ? 500 : 0;
-  const grandTotal = totalPrice + deliveryFee;
+  const deliveryFee =
+    cartItems.length > 0 ? 500 : 0;
+
+  const grandTotal =
+    totalPrice + deliveryFee;
 
   const handleCheckout = () => {
-    setOrdered(true);
+    if (cartItems.length === 0) {
+      return;
+    }
 
-    setTimeout(() => {
-      clearCart();
-    }, 3000);
+    navigate("/checkout", {
+      state: {
+        cartItems,
+        totalPrice,
+        deliveryFee,
+        grandTotal,
+      },
+    });
   };
-
-  if (ordered) {
-    return (
-      <div className="min-h-screen bg-[#faf9f6] flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <CheckCircle className="w-24 h-24 text-green-500 mx-auto mb-6" />
-
-          <h2 className="text-3xl font-bold font-['Georgia'] text-gray-800 mb-3">
-            Order Placed! 🎉
-          </h2>
-
-          <p className="text-gray-600 mb-2">
-            Thank you for ordering from Kings Chops!
-          </p>
-
-          <p className="text-gray-500 text-sm mb-8">
-            Your delicious food is being prepared and will be delivered in
-            approximately <strong>25-35 minutes</strong>.
-          </p>
-
-          <div className="bg-white rounded-2xl p-6 border border-[#e8ddd5] shadow-sm mb-6 text-left">
-            <h3 className="font-bold text-[#6b4226] mb-2">
-              Order Summary
-            </h3>
-
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Subtotal</span>
-              <span>₦{totalPrice.toLocaleString()}</span>
-            </div>
-
-            <div className="flex justify-between text-sm text-gray-600 mt-1">
-              <span>Delivery</span>
-              <span>₦{deliveryFee.toLocaleString()}</span>
-            </div>
-
-            <div className="flex justify-between font-bold text-gray-800 mt-2 pt-2 border-t border-gray-100">
-              <span>Total Paid</span>
-              <span>₦{grandTotal.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <Link
-            to="/"
-            className="inline-block bg-linear-to-r from-[#4a2c1d] to-[#7a4a2d] text-white font-bold px-8 py-3 rounded-xl hover:from-[#5a3825] hover:to-[#8b5a3c] transition-all hover:scale-105"
-          >
-            Back to Home
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#faf9f6]">
-
-      {/* Header */}
       <div className="bg-linear-to-br from-[#3b2418] via-[#5a3825] to-[#7a4a2d] text-white py-10 px-6">
         <div className="max-w-4xl mx-auto">
-
           <Link
             to="/menu"
             className="flex items-center gap-2 text-[#ead9cb] hover:text-white mb-4 transition-colors text-sm"
@@ -115,10 +70,8 @@ function CartPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-
         {cartItems.length === 0 ? (
           <div className="text-center py-20">
-
             <ShoppingCart className="w-20 h-20 text-[#d8c4b4] mx-auto mb-4" />
 
             <h3 className="text-xl font-bold text-gray-700 font-['Georgia'] mb-2">
@@ -126,54 +79,55 @@ function CartPage() {
             </h3>
 
             <p className="text-gray-500 mb-6">
-              Looks like you haven't added anything yet. Let's fix that!
+              Looks like you haven't added anything yet.
+              Let's fix that!
             </p>
 
             <Link
               to="/menu"
-              className="inline-block bg-linear-to-r from-[#4a2c1d] to-[#7a4a2d] text-white font-bold px-8 py-3 rounded-xl hover:from-[#5a3825] hover:to-[#8b5a3c] transition-all hover:scale-105"
+              className="inline-block bg-linear-to-r from-[#4a2c1d] to-[#7a4a2d] text-white font-bold px-8 py-3 rounded-xl hover:scale-105 transition-all"
             >
               Browse Menu
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            {/* Items List */}
             <div className="lg:col-span-2 space-y-4">
-
               {cartItems.map((item) => (
                 <div
                   key={item.id}
                   className="bg-white rounded-2xl p-4 shadow-sm border border-[#e8ddd5] flex items-center gap-4 hover:shadow-md transition-all"
                 >
-
                   <div className="text-4xl bg-[#f3ebe5] w-16 h-16 rounded-xl flex items-center justify-center shrink-0">
                     {item.emoji}
                   </div>
 
                   <div className="flex-1 min-w-0">
-
                     <h3 className="font-bold text-gray-800 text-sm font-['Georgia'] truncate">
                       {item.name}
                     </h3>
 
                     <p className="text-[#6b4226] font-semibold text-sm mt-0.5">
-                      ₦{(item.price * item.quantity).toLocaleString()}
+                      ₦
+                      {(
+                        item.price *
+                        item.quantity
+                      ).toLocaleString()}
                     </p>
 
                     <p className="text-gray-400 text-xs">
                       ₦{item.price.toLocaleString()} each
                     </p>
-
                   </div>
 
-                  {/* Quantity Controls */}
                   <div className="flex items-center gap-2">
-
                     <button
+                      type="button"
                       onClick={() =>
-                        updateQuantity(item.id, item.quantity - 1)
+                        updateQuantity(
+                          item.id,
+                          item.quantity - 1
+                        )
                       }
                       className="w-8 h-8 rounded-full bg-[#f3ebe5] text-[#6b4226] flex items-center justify-center hover:bg-[#e8d9ce] transition-colors cursor-pointer"
                     >
@@ -185,47 +139,48 @@ function CartPage() {
                     </span>
 
                     <button
+                      type="button"
                       onClick={() =>
-                        updateQuantity(item.id, item.quantity + 1)
+                        updateQuantity(
+                          item.id,
+                          item.quantity + 1
+                        )
                       }
                       className="w-8 h-8 rounded-full bg-[#f3ebe5] text-[#6b4226] flex items-center justify-center hover:bg-[#e8d9ce] transition-colors cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
-
                   </div>
 
                   <button
-                    onClick={() => removeFromCart(item.id)}
+                    type="button"
+                    onClick={() =>
+                      removeFromCart(item.id)
+                    }
                     className="text-gray-300 hover:text-red-500 transition-colors cursor-pointer ml-2 shrink-0"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
-
                 </div>
               ))}
 
               <button
+                type="button"
                 onClick={clearCart}
                 className="text-sm text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex items-center gap-1 mt-2"
               >
                 <Trash2 className="w-4 h-4" />
                 Clear all items
               </button>
-
             </div>
 
-            {/* Order Summary */}
             <div className="lg:col-span-1">
-
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e8ddd5] sticky top-24">
-
                 <h3 className="font-bold text-gray-800 text-lg font-['Georgia'] mb-4">
                   Order Summary
                 </h3>
 
                 <div className="space-y-3 text-sm text-gray-600">
-
                   {cartItems.map((item) => (
                     <div
                       key={item.id}
@@ -236,23 +191,31 @@ function CartPage() {
                       </span>
 
                       <span className="font-medium text-gray-700 whitespace-nowrap">
-                        ₦{(item.price * item.quantity).toLocaleString()}
+                        ₦
+                        {(
+                          item.price *
+                          item.quantity
+                        ).toLocaleString()}
                       </span>
                     </div>
                   ))}
-
                 </div>
 
                 <div className="border-t border-gray-100 mt-4 pt-4 space-y-2">
-
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>Subtotal</span>
-                    <span>₦{totalPrice.toLocaleString()}</span>
+
+                    <span>
+                      ₦{totalPrice.toLocaleString()}
+                    </span>
                   </div>
 
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>Delivery Fee</span>
-                    <span>₦{deliveryFee.toLocaleString()}</span>
+
+                    <span>
+                      ₦{deliveryFee.toLocaleString()}
+                    </span>
                   </div>
 
                   <div className="flex justify-between font-bold text-gray-800 text-base pt-2 border-t border-gray-100">
@@ -262,10 +225,8 @@ function CartPage() {
                       ₦{grandTotal.toLocaleString()}
                     </span>
                   </div>
-
                 </div>
 
-                {/* Delivery Note */}
                 <div className="bg-[#f3ebe5] rounded-xl p-3 mt-4 text-xs text-[#6b4226]">
                   🚚 Estimated delivery:{" "}
                   <strong>25–35 minutes</strong>
@@ -273,12 +234,13 @@ function CartPage() {
                   📍 Delivering within Lagos Island & Mainland
                 </div>
 
-                {/* Checkout */}
                 <button
+                  type="button"
                   onClick={handleCheckout}
-                  className="w-full bg-linear-to-r from-[#4a2c1d] via-[#5a3825] to-[#7a4a2d] text-white py-3 rounded-xl font-bold mt-4 hover:from-[#5a3825] hover:via-[#6b4226] hover:to-[#8b5a3c] transition-all hover:scale-[1.02] cursor-pointer shadow-lg"
+                  className="w-full bg-linear-to-r from-[#4a2c1d] via-[#5a3825] to-[#7a4a2d] text-white py-3 rounded-xl font-bold mt-4 hover:scale-[1.02] transition-all cursor-pointer shadow-lg"
                 >
-                  Place Order — ₦{grandTotal.toLocaleString()}
+                  Proceed to Payment — ₦
+                  {grandTotal.toLocaleString()}
                 </button>
 
                 <Link
@@ -287,13 +249,10 @@ function CartPage() {
                 >
                   + Add more items
                 </Link>
-
               </div>
             </div>
-
           </div>
         )}
-
       </div>
     </div>
   );

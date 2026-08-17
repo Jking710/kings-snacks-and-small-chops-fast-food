@@ -77,11 +77,11 @@ function Footer() {
             </h3>
 
             <p className="text-gray-700">
-              Monday - Friday: 7am - 11pm
+              Monday - Friday: 7am - 9pm
             </p>
 
             <p className="text-gray-700">
-              Saturday - Sunday: 10am - 11pm
+              Saturday - Sunday: 9am - 6pm
             </p>
           </div>
 

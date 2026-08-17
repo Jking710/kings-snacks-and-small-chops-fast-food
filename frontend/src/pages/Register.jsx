@@ -5,8 +5,13 @@ import React, {
   useCallback,
 } from "react";
 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCrown } from "@fortawesome/free-solid-svg-icons";
+import {
+  FontAwesomeIcon,
+} from "@fortawesome/react-fontawesome";
+
+import {
+  faCrown,
+} from "@fortawesome/free-solid-svg-icons";
 
 import {
   Link,
@@ -21,9 +26,8 @@ import {
   User,
   Phone,
   AlertCircle,
+  MapPin,
 } from "lucide-react";
-
-import { useAuth } from "../AuthContext.jsx";
 
 import {
   getCountries,
@@ -31,34 +35,187 @@ import {
   parsePhoneNumberFromString,
 } from "libphonenumber-js";
 
-// ─────────────────────────────────────────────────────────────
-// Country list
-// ─────────────────────────────────────────────────────────────
+import {
+  useAuth,
+} from "../AuthContext.jsx";
 
-const countryNames = new Intl.DisplayNames(
-  ["en"],
-  {
-    type: "region",
-  }
-);
 
-const countries = getCountries()
-  .map((country) => ({
-    code: country,
-    name:
-      countryNames.of(country) ||
-      country,
-    dialCode: `+${getCountryCallingCode(
-      country
-    )}`,
-  }))
-  .sort((a, b) =>
-    a.name.localeCompare(b.name)
+const countryNames =
+  new Intl.DisplayNames(
+    ["en"],
+    {
+      type: "region",
+    },
   );
 
-// ─────────────────────────────────────────────────────────────
-// Register
-// ─────────────────────────────────────────────────────────────
+
+const countries =
+  getCountries()
+    .map((code) => ({
+      code,
+      name:
+        countryNames.of(code) ||
+        code,
+      dialCode:
+        `+${getCountryCallingCode(code)}`,
+    }))
+    .sort(
+      (a, b) =>
+        a.name.localeCompare(b.name),
+    );
+
+
+const nigeriaStates = [
+  {
+    name: "Abia",
+    capital: "Umuahia",
+  },
+  {
+    name: "Adamawa",
+    capital: "Yola",
+  },
+  {
+    name: "Akwa Ibom",
+    capital: "Uyo",
+  },
+  {
+    name: "Anambra",
+    capital: "Awka",
+  },
+  {
+    name: "Bauchi",
+    capital: "Bauchi",
+  },
+  {
+    name: "Bayelsa",
+    capital: "Yenagoa",
+  },
+  {
+    name: "Benue",
+    capital: "Makurdi",
+  },
+  {
+    name: "Borno",
+    capital: "Maiduguri",
+  },
+  {
+    name: "Cross River",
+    capital: "Calabar",
+  },
+  {
+    name: "Delta",
+    capital: "Asaba",
+  },
+  {
+    name: "Ebonyi",
+    capital: "Abakaliki",
+  },
+  {
+    name: "Edo",
+    capital: "Benin City",
+  },
+  {
+    name: "Ekiti",
+    capital: "Ado-Ekiti",
+  },
+  {
+    name: "Enugu",
+    capital: "Enugu",
+  },
+  {
+    name: "Gombe",
+    capital: "Gombe",
+  },
+  {
+    name: "Imo",
+    capital: "Owerri",
+  },
+  {
+    name: "Jigawa",
+    capital: "Dutse",
+  },
+  {
+    name: "Kaduna",
+    capital: "Kaduna",
+  },
+  {
+    name: "Kano",
+    capital: "Kano",
+  },
+  {
+    name: "Katsina",
+    capital: "Katsina",
+  },
+  {
+    name: "Kebbi",
+    capital: "Birnin Kebbi",
+  },
+  {
+    name: "Kogi",
+    capital: "Lokoja",
+  },
+  {
+    name: "Kwara",
+    capital: "Ilorin",
+  },
+  {
+    name: "Lagos",
+    capital: "Ikeja",
+  },
+  {
+    name: "Nasarawa",
+    capital: "Lafia",
+  },
+  {
+    name: "Niger",
+    capital: "Minna",
+  },
+  {
+    name: "Ogun",
+    capital: "Abeokuta",
+  },
+  {
+    name: "Ondo",
+    capital: "Akure",
+  },
+  {
+    name: "Osun",
+    capital: "Osogbo",
+  },
+  {
+    name: "Oyo",
+    capital: "Ibadan",
+  },
+  {
+    name: "Plateau",
+    capital: "Jos",
+  },
+  {
+    name: "Rivers",
+    capital: "Port Harcourt",
+  },
+  {
+    name: "Sokoto",
+    capital: "Sokoto",
+  },
+  {
+    name: "Taraba",
+    capital: "Jalingo",
+  },
+  {
+    name: "Yobe",
+    capital: "Damaturu",
+  },
+  {
+    name: "Zamfara",
+    capital: "Gusau",
+  },
+  {
+    name: "Federal Capital Territory",
+    capital: "Abuja",
+  },
+];
+
 
 function Register() {
   const [
@@ -86,11 +243,15 @@ function Register() {
     setError,
   ] = useState("");
 
-  // Default country = Nigeria
   const [
     selectedCountry,
     setSelectedCountry,
   ] = useState("NG");
+
+  const [
+    selectedState,
+    setSelectedState,
+  ] = useState("");
 
   const [
     formData,
@@ -100,8 +261,10 @@ function Register() {
     lastName: "",
     email: "",
     phone: "",
+    address: "",
     password: "",
     confirmPassword: "",
+    capital: "",
   });
 
   const {
@@ -110,34 +273,44 @@ function Register() {
     isAuthenticated,
   } = useAuth();
 
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   const googleButtonRef =
     useRef(null);
 
-  // ─────────────────────────────────────────────────────────────
-  // Redirect if already authenticated
-  // ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/", {
-        replace: true,
-      });
+      navigate(
+        "/",
+        {
+          replace: true,
+        },
+      );
     }
   }, [
     isAuthenticated,
     navigate,
   ]);
 
-  // ─────────────────────────────────────────────────────────────
-  // Google response
-  // ─────────────────────────────────────────────────────────────
 
   const handleGoogleResponse =
     useCallback(
       async (response) => {
-        if (loading) return;
+        if (
+          loading ||
+          googleLoading
+        ) {
+          return;
+        }
+
+        if (!response?.credential) {
+          setError(
+            "Google authentication failed.",
+          );
+          return;
+        }
 
         setGoogleLoading(true);
         setError("");
@@ -145,23 +318,24 @@ function Register() {
         try {
           await googleLogin(
             response.credential,
-            true
+            true,
           );
 
-          navigate("/", {
-            replace: true,
-          });
+          navigate(
+            "/",
+            {
+              replace: true,
+            },
+          );
         } catch (err) {
           console.error(
             "Google registration error:",
-            err
+            err,
           );
 
-          // Show the exact message returned
-          // by the backend.
           setError(
             err?.message ||
-              "Google sign-up failed. Please try again."
+              "Google sign-up failed. Please try again.",
           );
         } finally {
           setGoogleLoading(false);
@@ -171,20 +345,27 @@ function Register() {
         googleLogin,
         navigate,
         loading,
-      ]
+        googleLoading,
+      ],
     );
 
-  // ─────────────────────────────────────────────────────────────
-  // Google Identity Services
-  // ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    let mounted = true;
+
     const initializeGoogle =
       () => {
         if (
+          !mounted ||
           !window.google ||
           !import.meta.env
             .VITE_GOOGLE_CLIENT_ID
+        ) {
+          return;
+        }
+
+        if (
+          !googleButtonRef.current
         ) {
           return;
         }
@@ -194,41 +375,35 @@ function Register() {
             client_id:
               import.meta.env
                 .VITE_GOOGLE_CLIENT_ID,
-
             callback:
               handleGoogleResponse,
-          }
+          },
         );
 
-        if (
-          googleButtonRef.current
-        ) {
-          googleButtonRef.current.innerHTML =
-            "";
+        googleButtonRef.current.innerHTML =
+          "";
 
-          window.google.accounts.id.renderButton(
-            googleButtonRef.current,
-            {
-              theme: "outline",
-              size: "large",
-
-              width:
-                googleButtonRef.current
-                  .offsetWidth,
-
-              text: "signup_with",
-              shape: "rectangular",
-            }
-          );
-        }
+        window.google.accounts.id.renderButton(
+          googleButtonRef.current,
+          {
+            theme: "outline",
+            size: "large",
+            width:
+              googleButtonRef.current
+                .offsetWidth,
+            text: "signup_with",
+            shape: "rectangular",
+          },
+        );
       };
+
 
     const scriptId =
       "google-gsi-script";
 
     const existingScript =
       document.getElementById(
-        scriptId
+        scriptId,
       );
 
     if (existingScript) {
@@ -237,24 +412,28 @@ function Register() {
       } else {
         existingScript.addEventListener(
           "load",
-          initializeGoogle
+          initializeGoogle,
         );
       }
 
       return () => {
+        mounted = false;
+
         existingScript.removeEventListener(
           "load",
-          initializeGoogle
+          initializeGoogle,
         );
       };
     }
 
+
     const script =
       document.createElement(
-        "script"
+        "script",
       );
 
-    script.id = scriptId;
+    script.id =
+      scriptId;
 
     script.src =
       "https://accounts.google.com/gsi/client";
@@ -266,310 +445,361 @@ function Register() {
       initializeGoogle;
 
     document.body.appendChild(
-      script
+      script,
     );
 
+
     return () => {
+      mounted = false;
       script.onload = null;
     };
   }, [
     handleGoogleResponse,
   ]);
 
-  // ─────────────────────────────────────────────────────────────
-  // Handle country change
-  // ─────────────────────────────────────────────────────────────
 
-  const handleCountryChange = (
-    e
-  ) => {
-    const country =
-      e.target.value;
+  const handleChange =
+    (e) => {
+      const {
+        name,
+        value,
+      } = e.target;
 
-    setSelectedCountry(
-      country
-    );
+      setFormData(
+        (previous) => ({
+          ...previous,
+          [name]: value,
+        }),
+      );
 
-    if (error) {
       setError("");
-    }
-  };
+    };
 
-  // ─────────────────────────────────────────────────────────────
-  // Handle inputs
-  // ─────────────────────────────────────────────────────────────
 
-  const handleChange = (
-    e
-  ) => {
-    const {
-      name,
-      value,
-    } = e.target;
+  const handleCountryChange =
+    (e) => {
+      setSelectedCountry(
+        e.target.value,
+      );
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+      setSelectedState("");
 
-    if (error) {
+      setFormData(
+        (previous) => ({
+          ...previous,
+          capital: "",
+        }),
+      );
+
       setError("");
-    }
-  };
+    };
 
-  // ─────────────────────────────────────────────────────────────
-  // Validate phone
-  // ─────────────────────────────────────────────────────────────
 
-  const validatePhoneNumber =
-    () => {
+  const handleStateChange =
+    (e) => {
+      const state =
+        e.target.value;
+
+      setSelectedState(state);
+
       if (
-        !formData.phone.trim()
+        selectedCountry === "NG"
       ) {
-        return {
-          valid: true,
-          formatted: "",
-        };
-      }
-
-      try {
-        const phoneNumber =
-          parsePhoneNumberFromString(
-            formData.phone,
-            selectedCountry
+        const selected =
+          nigeriaStates.find(
+            (item) =>
+              item.name === state,
           );
 
-        if (!phoneNumber) {
-          return {
-            valid: false,
-            formatted: "",
-          };
+        setFormData(
+          (previous) => ({
+            ...previous,
+            capital:
+              selected?.capital ||
+              "",
+          }),
+        );
+      }
+
+      setError("");
+    };
+
+
+  const validatePhone =
+    () => {
+      try {
+        const number =
+          parsePhoneNumberFromString(
+            formData.phone,
+            selectedCountry,
+          );
+
+        if (!number) {
+          return null;
         }
 
         if (
-          !phoneNumber.isValid() ||
-          phoneNumber.country !==
-            selectedCountry
+          !number.isValid()
         ) {
-          return {
-            valid: false,
-            formatted: "",
-          };
+          return null;
         }
 
-        return {
-          valid: true,
-          formatted:
-            phoneNumber.number,
-        };
+        if (
+          number.country !==
+          selectedCountry
+        ) {
+          return null;
+        }
+
+        return number.number;
       } catch {
-        return {
-          valid: false,
-          formatted: "",
-        };
+        return null;
       }
     };
 
-  // ─────────────────────────────────────────────────────────────
-  // Submit normal registration
-  // ─────────────────────────────────────────────────────────────
 
-  const handleSubmit = async (
-    e
-  ) => {
-    e.preventDefault();
+  const handleSubmit =
+    async (e) => {
+      e.preventDefault();
 
-    if (loading || googleLoading) {
-      return;
-    }
+      if (
+        loading ||
+        googleLoading
+      ) {
+        return;
+      }
 
-    setError("");
+      setError("");
 
-    // Password confirmation
-    if (
-      formData.password !==
-      formData.confirmPassword
-    ) {
-      setError(
-        "Passwords do not match."
-      );
-      return;
-    }
+      if (
+        !formData.firstName.trim() ||
+        !formData.lastName.trim()
+      ) {
+        setError(
+          "First name and last name are required.",
+        );
+        return;
+      }
 
-    // Password length
-    if (
-      formData.password.length <
-      8
-    ) {
-      setError(
-        "Password must be at least 8 characters."
-      );
-      return;
-    }
+      if (
+        formData.password.length <
+        8
+      ) {
+        setError(
+          "Password must be at least 8 characters.",
+        );
+        return;
+      }
 
-    // Email validation
-    const emailRegex =
-      /^\S+@\S+\.\S+$/;
+      if (
+        formData.password !==
+        formData.confirmPassword
+      ) {
+        setError(
+          "Passwords do not match.",
+        );
+        return;
+      }
 
-    const normalizedEmail =
-      formData.email
-        .trim()
-        .toLowerCase();
+      const normalizedEmail =
+        formData.email
+          .trim()
+          .toLowerCase();
 
-    if (
-      !emailRegex.test(
-        normalizedEmail
-      )
-    ) {
-      setError(
-        "Please enter a valid email address."
-      );
-      return;
-    }
-
-    // Phone validation
-    const phoneResult =
-      validatePhoneNumber();
-
-    if (
-      formData.phone.trim() &&
-      !phoneResult.valid
-    ) {
-      setError(
-        `Please enter a valid ${countryNames.of(
-          selectedCountry
-        )} phone number.`
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await register({
-        firstName:
-          formData.firstName.trim(),
-
-        lastName:
-          formData.lastName.trim(),
-
-        email:
+      if (
+        !/^\S+@\S+\.\S+$/.test(
           normalizedEmail,
+        )
+      ) {
+        setError(
+          "Please enter a valid email address.",
+        );
+        return;
+      }
 
-        phone:
-          phoneResult.formatted,
+      if (
+        !formData.phone.trim()
+      ) {
+        setError(
+          "Phone number is required.",
+        );
+        return;
+      }
 
-        password:
-          formData.password,
-      });
+      const formattedPhone =
+        validatePhone();
 
-      // Registration successful
-      navigate("/", {
-        replace: true,
-      });
-    } catch (err) {
-      console.error(
-        "Registration error:",
-        err
-      );
+      if (!formattedPhone) {
+        setError(
+          `Your phone number does not match ${countryNames.of(selectedCountry)}.`,
+        );
+        return;
+      }
 
-      // Backend sends:
-      //
-      // "This email has already been
-      // registered. Please sign in instead."
-      //
-      // apiFetch throws that message,
-      // so it will appear directly here.
+      if (
+        !selectedState.trim()
+      ) {
+        setError(
+          "Please enter your state.",
+        );
+        return;
+      }
 
-      setError(
-        err?.message ||
-          "Registration failed. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (
+        !formData.capital.trim()
+      ) {
+        setError(
+          "Please enter your capital.",
+        );
+        return;
+      }
 
-  // ─────────────────────────────────────────────────────────────
-  // UI
-  // ─────────────────────────────────────────────────────────────
+      if (
+        !formData.address.trim()
+      ) {
+        setError(
+          "Please enter your delivery address.",
+        );
+        return;
+      }
+
+      const selectedCountryName =
+        countryNames.of(
+          selectedCountry,
+        ) ||
+        selectedCountry;
+
+      setLoading(true);
+
+      try {
+        await register({
+          firstName:
+            formData.firstName.trim(),
+
+          lastName:
+            formData.lastName.trim(),
+
+          email:
+            normalizedEmail,
+
+          phone:
+            formattedPhone,
+
+          password:
+            formData.password,
+
+          country:
+            selectedCountryName,
+
+          countryCode:
+            selectedCountry,
+
+          state:
+            selectedState.trim(),
+
+          capital:
+            formData.capital.trim(),
+
+          address:
+            formData.address.trim(),
+        });
+
+        navigate(
+          "/",
+          {
+            replace: true,
+          },
+        );
+      } catch (err) {
+        console.error(
+          "Registration error:",
+          err,
+        );
+
+        setError(
+          err?.message ||
+            "Registration failed. Please try again.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-yellow-600 via-orange-500 to-rose-700 flex items-center justify-center px-4 py-12">
-
-      {/* Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white opacity-5 rounded-full" />
-
-        <div className="absolute bottom-20 left-10 w-60 h-60 bg-white opacity-5 rounded-full" />
-      </div>
+    <div className="min-h-screen bg-linear-to-br from-[#3b2418] via-[#5a3825] to-[#7a4a2d] flex items-center justify-center px-4 py-12">
 
       <div className="relative w-full max-w-lg">
 
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-          {/* Header */}
-          <div className="bg-linear-to-r from-yellow-600 to-orange-600 px-8 py-6 text-center">
+          <div className="bg-linear-to-r from-[#3b2418] via-[#5a3825] to-[#8b5e3c] px-8 py-6 text-center">
 
             <Link
               to="/"
               className="inline-flex items-center gap-2 mb-2"
             >
+
               <FontAwesomeIcon
                 icon={faCrown}
                 className="text-white text-3xl"
               />
 
               <h1 className="font-['Georgia'] font-bold text-2xl text-white">
+
                 Kings{" "}
-                <span className="text-yellow-200">
+
+                <span className="text-[#d9b99b]">
                   Chops
                 </span>
+
               </h1>
+
             </Link>
 
-            <p className="text-orange-100 text-sm mt-1">
-              Create your account and start
-              ordering!
+            <p className="text-[#ead9cc] text-sm">
+              Create your account and start ordering
             </p>
+
           </div>
+
 
           <div className="px-8 py-8">
 
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 font-['Georgia']">
-              Join Kings Chops 🍕
+            <h2 className="text-2xl font-bold text-[#3b2418] mb-6 font-['Georgia']">
+              Welcome to Kings Chops 🍕
             </h2>
 
-            {/* Error */}
+
             {error && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-5 text-sm">
+
                 <AlertCircle className="w-4 h-4 shrink-0" />
 
                 <span>
                   {error}
                 </span>
+
               </div>
             )}
+
 
             <form
               onSubmit={handleSubmit}
               className="space-y-4"
             >
 
-              {/* First + Last name */}
               <div className="grid grid-cols-2 gap-4">
 
-                {/* First name */}
                 <div>
+
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    First Name{" "}
-                    <span className="text-red-500">
-                      *
-                    </span>
+                    First Name *
                   </label>
 
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400 w-4 h-4" />
+
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b5e3c] w-4 h-4" />
 
                     <input
                       type="text"
@@ -582,22 +812,23 @@ function Register() {
                         handleChange
                       }
                       placeholder="John"
-                      className="w-full pl-9 pr-3 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+                      className="w-full pl-9 pr-3 py-3 rounded-xl border border-[#e5d8cf] focus:outline-none focus:ring-2 focus:ring-[#c7ad9b] text-sm"
                     />
+
                   </div>
+
                 </div>
 
-                {/* Last name */}
+
                 <div>
+
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Last Name{" "}
-                    <span className="text-red-500">
-                      *
-                    </span>
+                    Last Name *
                   </label>
 
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400 w-4 h-4" />
+
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b5e3c] w-4 h-4" />
 
                     <input
                       type="text"
@@ -610,24 +841,25 @@ function Register() {
                         handleChange
                       }
                       placeholder="Doe"
-                      className="w-full pl-9 pr-3 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+                      className="w-full pl-9 pr-3 py-3 rounded-xl border border-[#e5d8cf] focus:outline-none focus:ring-2 focus:ring-[#c7ad9b] text-sm"
                     />
+
                   </div>
+
                 </div>
 
               </div>
 
-              {/* Email */}
+
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Email Address{" "}
-                  <span className="text-red-500">
-                    *
-                  </span>
+                  Email Address *
                 </label>
 
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400 w-5 h-5" />
+
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b5e3c] w-5 h-5" />
 
                   <input
                     type="email"
@@ -640,93 +872,221 @@ function Register() {
                       handleChange
                     }
                     placeholder="you@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#e5d8cf] focus:outline-none focus:ring-2 focus:ring-[#c7ad9b] text-sm"
                   />
+
                 </div>
+
               </div>
 
-              {/* Phone */}
+
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Phone Number
+                  Country *
                 </label>
 
-                <div className="flex gap-2">
+                <select
+                  value={
+                    selectedCountry
+                  }
+                  onChange={
+                    handleCountryChange
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-[#e5d8cf] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#c7ad9b]"
+                >
 
-                  <div className="relative w-[150px] shrink-0">
-                    <select
-                      value={
-                        selectedCountry
-                      }
-                      onChange={
-                        handleCountryChange
-                      }
-                      className="w-full h-full appearance-none rounded-xl border border-gray-200 bg-white px-3 py-3 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer"
-                    >
-                      {countries.map(
+                  {countries.map(
+                    (country) => (
+                      <option
+                        key={
+                          country.code
+                        }
+                        value={
+                          country.code
+                        }
+                      >
+                        {
+                          country.name
+                        }{" "}
                         (
-                          country
-                        ) => (
-                          <option
-                            key={
-                              country.code
-                            }
-                            value={
-                              country.code
-                            }
-                          >
-                            {
-                              country.code
-                            }{" "}
-                            {
-                              country.dialCode
-                            }
-                          </option>
+                        {
+                          country.dialCode
+                        }
                         )
-                      )}
-                    </select>
+                      </option>
+                    ),
+                  )}
 
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
-                      ▼
-                    </span>
-                  </div>
+                </select>
 
-                  <div className="relative flex-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400 w-5 h-5" />
+              </div>
 
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={
-                        formData.phone
-                      }
-                      onChange={
-                        handleChange
-                      }
-                      placeholder="801 234 5678"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
-                    />
-                  </div>
+
+              <div>
+
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Phone Number *
+                </label>
+
+                <div className="relative">
+
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b5e3c] w-5 h-5" />
+
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    value={
+                      formData.phone
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="801 234 5678"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#e5d8cf] focus:outline-none focus:ring-2 focus:ring-[#c7ad9b] text-sm"
+                  />
 
                 </div>
 
                 <p className="text-xs text-gray-400 mt-1.5">
-                  Select your country and enter
-                  your phone number.
+                  Your phone number must belong to the selected country.
                 </p>
+
               </div>
 
-              {/* Password */}
+
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Password{" "}
-                  <span className="text-red-500">
-                    *
-                  </span>
+                  State *
+                </label>
+
+                {selectedCountry === "NG" ? (
+                  <select
+                    value={
+                      selectedState
+                    }
+                    onChange={
+                      handleStateChange
+                    }
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-[#e5d8cf] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#c7ad9b]"
+                  >
+
+                    <option value="">
+                      Select your state
+                    </option>
+
+                    {nigeriaStates.map(
+                      (item) => (
+                        <option
+                          key={
+                            item.name
+                          }
+                          value={
+                            item.name
+                          }
+                        >
+                          {
+                            item.name
+                          }
+                        </option>
+                      ),
+                    )}
+
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={
+                      selectedState
+                    }
+                    onChange={(e) =>
+                      setSelectedState(
+                        e.target.value,
+                      )
+                    }
+                    placeholder="Enter your state"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-[#e5d8cf] text-sm focus:outline-none focus:ring-2 focus:ring-[#c7ad9b]"
+                  />
+                )}
+
+              </div>
+
+
+              <div>
+
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Capital *
                 </label>
 
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400 w-5 h-5" />
+
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b5e3c] w-5 h-5" />
+
+                  <input
+                    type="text"
+                    name="capital"
+                    required
+                    value={
+                      formData.capital
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="Enter your capital"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#e5d8cf] focus:outline-none focus:ring-2 focus:ring-[#c7ad9b] text-sm"
+                  />
+
+                </div>
+
+              </div>
+
+
+              <div>
+
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Delivery Address *
+                </label>
+
+                <div className="relative">
+
+                  <MapPin className="absolute left-3 top-3 text-[#8b5e3c] w-5 h-5" />
+
+                  <textarea
+                    name="address"
+                    required
+                    value={
+                      formData.address
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="Enter your full delivery address"
+                    rows={3}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#e5d8cf] focus:outline-none focus:ring-2 focus:ring-[#c7ad9b] text-sm resize-none"
+                  />
+
+                </div>
+
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Enter the address where you want your orders delivered.
+                </p>
+
+              </div>
+
+
+              <div>
+
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Password *
+                </label>
+
+                <div className="relative">
+
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b5e3c] w-5 h-5" />
 
                   <input
                     type={
@@ -743,38 +1103,41 @@ function Register() {
                       handleChange
                     }
                     placeholder="Min. 8 characters"
-                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-[#e5d8cf] text-sm focus:outline-none focus:ring-2 focus:ring-[#c7ad9b]"
                   />
 
                   <button
                     type="button"
                     onClick={() =>
                       setShowPassword(
-                        !showPassword
+                        !showPassword,
                       )
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                   >
+
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
                     ) : (
                       <Eye className="w-5 h-5" />
                     )}
+
                   </button>
+
                 </div>
+
               </div>
 
-              {/* Confirm password */}
+
               <div>
+
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Confirm Password{" "}
-                  <span className="text-red-500">
-                    *
-                  </span>
+                  Confirm Password *
                 </label>
 
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400 w-5 h-5" />
+
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b5e3c] w-5 h-5" />
 
                   <input
                     type={
@@ -791,34 +1154,39 @@ function Register() {
                       handleChange
                     }
                     placeholder="Repeat password"
-                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-[#e5d8cf] text-sm focus:outline-none focus:ring-2 focus:ring-[#c7ad9b]"
                   />
 
                   <button
                     type="button"
                     onClick={() =>
                       setShowConfirm(
-                        !showConfirm
+                        !showConfirm,
                       )
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                   >
+
                     {showConfirm ? (
                       <EyeOff className="w-5 h-5" />
                     ) : (
                       <Eye className="w-5 h-5" />
                     )}
+
                   </button>
+
                 </div>
+
               </div>
 
-              {/* Terms */}
+
               <div className="flex items-start gap-2 pt-1">
+
                 <input
                   type="checkbox"
                   required
                   id="terms"
-                  className="mt-1 accent-orange-600"
+                  className="mt-1 accent-[#7a4a2d]"
                 />
 
                 <label
@@ -827,79 +1195,52 @@ function Register() {
                 >
                   I agree to the{" "}
 
-                  <a
-                    href="#"
-                    className="text-orange-600 font-semibold hover:underline"
-                  >
+                  <span className="text-[#7a4a2d] font-semibold">
                     Terms of Service
-                  </a>{" "}
+                  </span>{" "}
 
                   and{" "}
 
-                  <a
-                    href="#"
-                    className="text-orange-600 font-semibold hover:underline"
-                  >
+                  <span className="text-[#7a4a2d] font-semibold">
                     Privacy Policy
-                  </a>
+                  </span>
+
                 </label>
+
               </div>
 
-              {/* Create account */}
+
               <button
                 type="submit"
                 disabled={
                   loading ||
                   googleLoading
                 }
-                className="w-full bg-linear-to-r from-orange-600 to-rose-600 text-white py-3 rounded-xl font-semibold text-sm hover:from-orange-700 hover:to-rose-700 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer shadow-lg mt-2"
+                className="w-full bg-linear-to-r from-[#5a3825] to-[#8b5e3c] text-white py-3 rounded-xl font-semibold text-sm disabled:opacity-60 cursor-pointer"
               >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
 
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
+                {loading
+                  ? "Creating account..."
+                  : "Create My Account"}
 
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      />
-                    </svg>
-
-                    Creating account...
-
-                  </span>
-                ) : (
-                  "Create My Account"
-                )}
               </button>
 
             </form>
 
-            {/* Divider */}
+
             <div className="flex items-center my-5">
-              <div className="flex-1 border-t border-gray-200" />
+
+              <div className="flex-1 border-t border-[#e5d8cf]" />
 
               <span className="px-4 text-sm text-gray-400">
                 or
               </span>
 
-              <div className="flex-1 border-t border-gray-200" />
+              <div className="flex-1 border-t border-[#e5d8cf]" />
+
             </div>
 
-            {/* Google Sign Up */}
+
             <div
               ref={googleButtonRef}
               className={`w-full flex justify-center ${
@@ -909,30 +1250,33 @@ function Register() {
               }`}
             />
 
-            {/* Login */}
+
             <p className="text-center mt-5 text-sm text-gray-500">
+
               Already have an account?{" "}
 
               <Link
                 to="/login"
-                className="text-orange-600 font-semibold hover:text-orange-800 hover:underline"
+                className="text-[#7a4a2d] font-semibold hover:underline"
               >
                 Sign in here
               </Link>
+
             </p>
 
           </div>
+
         </div>
 
+
         <p className="text-center text-white/70 text-xs mt-4">
-          ©{" "}
-          {new Date().getFullYear()}{" "}
-          Kings Chops. All rights reserved.
+          © {new Date().getFullYear()} Kings Chops. All rights reserved.
         </p>
 
       </div>
     </div>
   );
 }
+
 
 export default Register;

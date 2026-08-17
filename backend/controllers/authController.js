@@ -3,21 +3,35 @@ import { OAuth2Client } from "google-auth-library";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
+
 import User from "../models/User.js";
+import Notification from "../models/Notification.js";
+
+// ─────────────────────────────────────────────────────────────
+// FILE PATHS
+// ─────────────────────────────────────────────────────────────
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Google OAuth client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// ─────────────────────────────────────────────────────────────
+// GOOGLE CLIENT
+// ─────────────────────────────────────────────────────────────
+
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID
+);
 
 // ─────────────────────────────────────────────────────────────
-// Generate JWT
+// GENERATE JWT
 // ─────────────────────────────────────────────────────────────
 
 const generateToken = (userId) => {
   return jwt.sign(
-    { id: userId },
+    {
+      id: userId,
+    },
     process.env.JWT_SECRET,
     {
       expiresIn: "7d",
@@ -26,10 +40,14 @@ const generateToken = (userId) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Send token + user response
+// SEND TOKEN RESPONSE
 // ─────────────────────────────────────────────────────────────
 
-const sendTokenResponse = (res, user, statusCode = 200) => {
+const sendTokenResponse = (
+  res,
+  user,
+  statusCode = 200
+) => {
   const token = generateToken(user._id);
 
   res.cookie("token", token, {
@@ -47,47 +65,234 @@ const sendTokenResponse = (res, user, statusCode = 200) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// REGISTER WITH EMAIL + PASSWORD
-// POST /api/auth/register
+// CREATE NOTIFICATION SAFELY
+// ─────────────────────────────────────────────────────────────
+//
+// Notification errors must NEVER break login or registration.
+// The notification is a secondary operation.
 // ─────────────────────────────────────────────────────────────
 
-export const register = async (req, res) => {
-  console.log("authController.register invoked");
-
+const createNotificationSafely = async ({
+  user,
+  type,
+  title,
+  message,
+  link = "",
+  metadata = {},
+}) => {
   try {
-    fs.appendFileSync(
-      path.join(__dirname, "register_hits.log"),
-      `HIT ${new Date().toISOString()} - ${
-        req.body?.email || "no-email"
-      }\n`
+    if (!user) {
+      console.error(
+        "Notification skipped: user is missing."
+      );
+
+      return null;
+    }
+
+    const notification = await Notification.create({
+      user: user._id || user,
+
+      type,
+
+      title,
+
+      message,
+
+      link,
+
+      metadata,
+
+      isRead: false,
+    });
+
+    console.log(
+      `Notification created successfully for user ${user._id || user}`
     );
+
+    return notification;
   } catch (error) {
     console.error(
-      "Failed to write register_hits.log:",
-      error.message
+      "Notification creation failed:",
+      error.stack || error
     );
+
+    // Do NOT throw the error.
+    // Login and registration must continue.
+    return null;
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// LOGIN NOTIFICATION
+// ─────────────────────────────────────────────────────────────
+
+const createLoginNotification = (
+  user,
+  loginMethod = "email"
+) => {
+  return createNotificationSafely({
+    user,
+
+    type: "login",
+
+    title:
+      loginMethod === "google"
+        ? "Google login successful"
+        : "New login detected",
+
+    message:
+      loginMethod === "google"
+        ? "You successfully signed in with Google."
+        : "You successfully signed in to your Kings Chops account.",
+
+    link: "/profile",
+
+    metadata: {
+      loginMethod,
+    },
+  });
+};
+
+// ─────────────────────────────────────────────────────────────
+// WELCOME NOTIFICATION
+// ─────────────────────────────────────────────────────────────
+
+const createWelcomeNotification = (
+  user
+) => {
+  return createNotificationSafely({
+    user,
+
+    type: "welcome",
+
+    title: "Welcome to Kings Chops",
+
+    message: `Welcome ${user.firstName}. Your Kings Chops account is ready.`,
+
+    link: "/menu",
+
+    metadata: {
+      registrationMethod:
+        user.authProvider || "local",
+    },
+  });
+};
+
+// ─────────────────────────────────────────────────────────────
+// PHONE VALIDATION
+// ─────────────────────────────────────────────────────────────
+
+const validatePhoneForCountry = (
+  phone,
+  countryCode
+) => {
+  if (!phone || !phone.trim()) {
+    return {
+      valid: false,
+      message: "Phone number is required.",
+    };
+  }
+
+  if (!countryCode || !countryCode.trim()) {
+    return {
+      valid: false,
+      message: "Country is required.",
+    };
   }
 
   try {
+    const normalizedCountryCode =
+      countryCode.trim().toUpperCase();
+
+    const number =
+      parsePhoneNumberFromString(
+        phone.trim(),
+        normalizedCountryCode
+      );
+
+    if (!number) {
+      return {
+        valid: false,
+        message:
+          "The phone number could not be verified.",
+      };
+    }
+
+    if (!number.isValid()) {
+      return {
+        valid: false,
+        message:
+          "Please enter a valid phone number.",
+      };
+    }
+
+    if (
+      number.country !==
+      normalizedCountryCode
+    ) {
+      return {
+        valid: false,
+        message:
+          "Your phone number does not match your selected country.",
+      };
+    }
+
+    return {
+      valid: true,
+      phone: number.number,
+      countryCode: number.country,
+    };
+  } catch {
+    return {
+      valid: false,
+      message:
+        "Your phone number does not match your selected country.",
+    };
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// REGISTER
+// ─────────────────────────────────────────────────────────────
+
+export const register = async (
+  req,
+  res
+) => {
+  console.log(
+    "authController.register invoked"
+  );
+
+  try {
+    try {
+      fs.appendFileSync(
+        path.join(
+          __dirname,
+          "register_hits.log"
+        ),
+        `HIT ${new Date().toISOString()} - ${
+          req.body?.email || "no-email"
+        }\n`
+      );
+    } catch (error) {
+      console.error(
+        "Failed to write register_hits.log:",
+        error.message
+      );
+    }
+
     const {
       firstName,
       lastName,
       email,
       phone,
+      countryCode,
+      country,
+      state,
+      capital,
+      address,
       password,
     } = req.body;
-
-    console.log("register payload:", {
-      firstName,
-      lastName,
-      email,
-      phone,
-      password: password ? "***" : null,
-    });
-
-    // ─────────────────────────────────────────────
-    // Basic validation
-    // ─────────────────────────────────────────────
 
     if (
       !firstName ||
@@ -96,7 +301,15 @@ export const register = async (req, res) => {
       !password
     ) {
       return res.status(400).json({
-        message: "All fields are required.",
+        message:
+          "First name, last name, email and password are required.",
+      });
+    }
+
+    if (!address?.trim()) {
+      return res.status(400).json({
+        message:
+          "Delivery address is required.",
       });
     }
 
@@ -107,24 +320,25 @@ export const register = async (req, res) => {
       });
     }
 
-    const emailRegex = /^\S+@\S+\.\S+$/;
+    const emailRegex =
+      /^\S+@\S+\.\S+$/;
 
-    if (!emailRegex.test(email.trim())) {
+    if (
+      !emailRegex.test(email.trim())
+    ) {
       return res.status(400).json({
-        message: "Please enter a valid email.",
+        message:
+          "Please enter a valid email.",
       });
     }
 
     const normalizedEmail =
       email.toLowerCase().trim();
 
-    // ─────────────────────────────────────────────
-    // CHECK EXISTING EMAIL
-    // ─────────────────────────────────────────────
-
-    const existingUser = await User.findOne({
-      email: normalizedEmail,
-    });
+    const existingUser =
+      await User.findOne({
+        email: normalizedEmail,
+      });
 
     if (existingUser) {
       return res.status(409).json({
@@ -133,22 +347,79 @@ export const register = async (req, res) => {
       });
     }
 
-    // ─────────────────────────────────────────────
-    // CREATE LOCAL ACCOUNT
-    // ─────────────────────────────────────────────
+    let formattedPhone = "";
 
-    console.log("creating user in DB...");
+    let normalizedCountryCode =
+      countryCode || "";
+
+    let normalizedCountry =
+      country || "";
+
+    if (phone?.trim()) {
+      if (!countryCode) {
+        return res.status(400).json({
+          message:
+            "Select your country before entering your phone number.",
+        });
+      }
+
+      const phoneResult =
+        validatePhoneForCountry(
+          phone,
+          countryCode
+        );
+
+      if (!phoneResult.valid) {
+        return res.status(400).json({
+          message:
+            phoneResult.message,
+        });
+      }
+
+      formattedPhone =
+        phoneResult.phone;
+
+      normalizedCountryCode =
+        phoneResult.countryCode;
+
+      normalizedCountry =
+        country?.trim() || "";
+    }
 
     const user = await User.create({
       firstName: firstName.trim(),
+
       lastName: lastName.trim(),
+
       email: normalizedEmail,
-      phone: phone || "",
+
+      phone: formattedPhone,
+
+      country: normalizedCountry,
+
+      countryCode:
+        normalizedCountryCode,
+
+      state: state?.trim() || "",
+
+      capital: capital?.trim() || "",
+
+      address: address.trim(),
+
       password,
+
       authProvider: "local",
     });
 
-    console.log("user created:", user._id);
+    console.log(
+      "User created:",
+      user._id
+    );
+
+    // Notification failure does not affect registration.
+    await createWelcomeNotification(
+      user
+    );
 
     return sendTokenResponse(
       res,
@@ -178,7 +449,6 @@ export const register = async (req, res) => {
       );
     }
 
-    // MongoDB duplicate key protection
     if (error.code === 11000) {
       return res.status(409).json({
         message:
@@ -195,11 +465,13 @@ export const register = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// LOGIN WITH EMAIL + PASSWORD
-// POST /api/auth/login
+// LOGIN
 // ─────────────────────────────────────────────────────────────
 
-export const login = async (req, res) => {
+export const login = async (
+  req,
+  res
+) => {
   try {
     const {
       email,
@@ -227,7 +499,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // Google-only account
     if (
       user.authProvider === "google" &&
       !user.password
@@ -239,7 +510,9 @@ export const login = async (req, res) => {
     }
 
     const isMatch =
-      await user.comparePassword(password);
+      await user.comparePassword(
+        password
+      );
 
     if (!isMatch) {
       return res.status(401).json({
@@ -248,6 +521,15 @@ export const login = async (req, res) => {
       });
     }
 
+    // Create notification.
+    // The helper catches notification errors.
+    await createLoginNotification(
+      user,
+      "email"
+    );
+
+    // Login response is sent regardless of
+    // notification creation status.
     return sendTokenResponse(
       res,
       user
@@ -255,7 +537,7 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error(
       "Login error:",
-      error
+      error.stack || error
     );
 
     return res.status(500).json({
@@ -266,11 +548,13 @@ export const login = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// GOOGLE LOGIN / REGISTRATION
-// POST /api/auth/google
+// GOOGLE AUTH
 // ─────────────────────────────────────────────────────────────
 
-export const googleAuth = async (req, res) => {
+export const googleAuth = async (
+  req,
+  res
+) => {
   try {
     const {
       credential,
@@ -283,10 +567,6 @@ export const googleAuth = async (req, res) => {
           "Google credential is missing.",
       });
     }
-
-    // ─────────────────────────────────────────────
-    // Verify Google credential
-    // ─────────────────────────────────────────────
 
     const ticket =
       await googleClient.verifyIdToken({
@@ -316,20 +596,6 @@ export const googleAuth = async (req, res) => {
     const normalizedEmail =
       email.toLowerCase().trim();
 
-    // ─────────────────────────────────────────────
-    // GOOGLE REGISTRATION
-    // ─────────────────────────────────────────────
-    //
-    // IMPORTANT:
-    //
-    // If the user is registering with Google,
-    // DO NOT reuse, link, or modify an existing
-    // account.
-    //
-    // If either the Google ID OR email already
-    // exists, registration must be rejected.
-    // ─────────────────────────────────────────────
-
     if (isRegistration) {
       const existingGoogleUser =
         await User.findOne({
@@ -355,9 +621,6 @@ export const googleAuth = async (req, res) => {
         });
       }
 
-      // No existing account.
-      // Create a completely new Google account.
-
       const user = await User.create({
         firstName:
           firstName || "User",
@@ -373,13 +636,11 @@ export const googleAuth = async (req, res) => {
         profilePicture:
           profilePicture || "",
 
-        authProvider:
-          "google",
+        authProvider: "google",
       });
 
-      console.log(
-        "Google user created:",
-        user._id
+      await createWelcomeNotification(
+        user
       );
 
       return sendTokenResponse(
@@ -389,36 +650,27 @@ export const googleAuth = async (req, res) => {
       );
     }
 
-    // ─────────────────────────────────────────────
-    // GOOGLE LOGIN
-    // ─────────────────────────────────────────────
-
-    // First look for Google ID
     let user = await User.findOne({
       googleId,
     });
 
     if (user) {
+      await createLoginNotification(
+        user,
+        "google"
+      );
+
       return sendTokenResponse(
         res,
         user
       );
     }
 
-    // ─────────────────────────────────────────────
-    // Look for account by email
-    // ─────────────────────────────────────────────
-
     user = await User.findOne({
       email: normalizedEmail,
     });
 
     if (user) {
-      // Existing local account.
-      //
-      // Since this is LOGIN and not REGISTRATION,
-      // we can link the Google account.
-
       user.googleId = googleId;
 
       if (
@@ -431,15 +683,16 @@ export const googleAuth = async (req, res) => {
 
       await user.save();
 
+      await createLoginNotification(
+        user,
+        "google"
+      );
+
       return sendTokenResponse(
         res,
         user
       );
     }
-
-    // ─────────────────────────────────────────────
-    // No account found
-    // ─────────────────────────────────────────────
 
     return res.status(404).json({
       message:
@@ -461,10 +714,12 @@ export const googleAuth = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────
 // GET CURRENT USER
-// GET /api/auth/me
 // ─────────────────────────────────────────────────────────────
 
-export const getMe = async (req, res) => {
+export const getMe = async (
+  req,
+  res
+) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -491,70 +746,446 @@ export const getMe = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// UPDATE PHONE NUMBER
-// PUT /api/auth/phone
+// UPDATE PROFILE
 // ─────────────────────────────────────────────────────────────
 
-export const updatePhone = async (req, res) => {
+export const updateProfile = async (
+  req,
+  res
+) => {
   try {
-    const { phone } = req.body;
-
-    if (!phone || !phone.trim()) {
-      return res.status(400).json({
-        message: "Phone number is required.",
+    if (!req.user) {
+      return res.status(401).json({
+        message:
+          "Not authenticated.",
       });
     }
 
-    const cleanedPhone = phone.trim();
-
-    // Basic phone number validation
-    if (!/^[0-9+\-\s()]{7,20}$/.test(cleanedPhone)) {
-      return res.status(400).json({
-        message: "Please enter a valid phone number.",
-      });
-    }
-
-    const user = await User.findById(req.user._id);
+    const user =
+      await User.findById(
+        req.user._id
+      );
 
     if (!user) {
       return res.status(404).json({
-        message: "User not found.",
+        message:
+          "User not found.",
       });
     }
 
-    user.phone = cleanedPhone;
+    const {
+      field,
+      value,
+      countryCode,
+    } = req.body;
+
+    const allowedFields = [
+      "firstName",
+      "lastName",
+      "phone",
+      "country",
+      "countryCode",
+      "state",
+      "capital",
+      "address",
+    ];
+
+    if (!field) {
+      return res.status(400).json({
+        message:
+          "Profile field is required.",
+      });
+    }
+
+    if (
+      !allowedFields.includes(field)
+    ) {
+      return res.status(400).json({
+        message:
+          "This profile field cannot be edited.",
+      });
+    }
+
+    if (
+      typeof value !== "string"
+    ) {
+      return res.status(400).json({
+        message:
+          "Invalid profile value.",
+      });
+    }
+
+    const cleanedValue =
+      value.trim();
+
+    if (field === "firstName") {
+      if (!cleanedValue) {
+        return res.status(400).json({
+          message:
+            "First name is required.",
+        });
+      }
+
+      user.firstName =
+        cleanedValue;
+    } else if (
+      field === "lastName"
+    ) {
+      if (!cleanedValue) {
+        return res.status(400).json({
+          message:
+            "Last name is required.",
+        });
+      }
+
+      user.lastName =
+        cleanedValue;
+    } else if (
+      field === "phone"
+    ) {
+      const selectedCountry =
+        (
+          countryCode ||
+          user.countryCode ||
+          ""
+        )
+          .trim()
+          .toUpperCase();
+
+      if (!selectedCountry) {
+        return res.status(400).json({
+          message:
+            "Select your country before saving your phone number.",
+        });
+      }
+
+      const result =
+        validatePhoneForCountry(
+          cleanedValue,
+          selectedCountry
+        );
+
+      if (!result.valid) {
+        return res.status(400).json({
+          message:
+            result.message,
+        });
+      }
+
+      user.phone =
+        result.phone;
+
+      user.countryCode =
+        result.countryCode;
+
+      const displayName =
+        new Intl.DisplayNames(
+          ["en"],
+          {
+            type: "region",
+          }
+        );
+
+      user.country =
+        displayName.of(
+          result.countryCode
+        ) ||
+        result.countryCode;
+    } else if (
+      field === "countryCode"
+    ) {
+      const newCountryCode =
+        cleanedValue.toUpperCase();
+
+      if (
+        !/^[A-Z]{2}$/.test(
+          newCountryCode
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid country selected.",
+        });
+      }
+
+      if (!user.phone) {
+        return res.status(400).json({
+          message:
+            "Enter and save your phone number before saving your country.",
+        });
+      }
+
+      const result =
+        validatePhoneForCountry(
+          user.phone,
+          newCountryCode
+        );
+
+      if (!result.valid) {
+        return res.status(400).json({
+          message:
+            "Your phone number does not match the selected country.",
+        });
+      }
+
+      user.countryCode =
+        newCountryCode;
+
+      const displayName =
+        new Intl.DisplayNames(
+          ["en"],
+          {
+            type: "region",
+          }
+        );
+
+      user.country =
+        displayName.of(
+          newCountryCode
+        ) ||
+        newCountryCode;
+    } else if (
+      field === "country"
+    ) {
+      if (!user.phone) {
+        return res.status(400).json({
+          message:
+            "Enter and save your phone number before saving your country.",
+        });
+      }
+
+      if (!user.countryCode) {
+        return res.status(400).json({
+          message:
+            "Your country code is missing. Save your phone number first.",
+        });
+      }
+
+      const displayName =
+        new Intl.DisplayNames(
+          ["en"],
+          {
+            type: "region",
+          }
+        );
+
+      const expectedCountry =
+        displayName.of(
+          user.countryCode
+        );
+
+      if (
+        expectedCountry &&
+        expectedCountry.toLowerCase() !==
+          cleanedValue.toLowerCase()
+      ) {
+        return res.status(400).json({
+          message:
+            "The country name does not match your phone number.",
+        });
+      }
+
+      user.country =
+        cleanedValue;
+    } else if (
+      field === "state"
+    ) {
+      if (!user.phone) {
+        return res.status(400).json({
+          message:
+            "Enter and save your phone number before saving your location.",
+        });
+      }
+
+      if (!user.country) {
+        return res.status(400).json({
+          message:
+            "Save your country before saving your state.",
+        });
+      }
+
+      if (!cleanedValue) {
+        return res.status(400).json({
+          message:
+            "Enter your state.",
+        });
+      }
+
+      user.state =
+        cleanedValue;
+    } else if (
+      field === "capital"
+    ) {
+      if (!user.phone) {
+        return res.status(400).json({
+          message:
+            "Enter and save your phone number before saving your location.",
+        });
+      }
+
+      if (!user.country) {
+        return res.status(400).json({
+          message:
+            "Save your country before saving your capital.",
+        });
+      }
+
+      if (!cleanedValue) {
+        return res.status(400).json({
+          message:
+            "Enter your capital.",
+        });
+      }
+
+      user.capital =
+        cleanedValue;
+    } else if (
+      field === "address"
+    ) {
+      if (!cleanedValue) {
+        return res.status(400).json({
+          message:
+            "Enter your delivery address.",
+        });
+      }
+
+      if (
+        cleanedValue.length > 300
+      ) {
+        return res.status(400).json({
+          message:
+            "Address cannot exceed 300 characters.",
+        });
+      }
+
+      user.address =
+        cleanedValue;
+    }
 
     await user.save();
 
     return res.status(200).json({
       success: true,
-      message: "Phone number updated successfully.",
+      message: `${field} updated successfully.`,
       user: user.toSafeObject(),
     });
   } catch (error) {
-    console.error("Update phone error:", error);
+    console.error(
+      "Update profile error:",
+      error.stack || error
+    );
 
     return res.status(500).json({
-      message: "Could not update phone number. Please try again.",
+      message:
+        error.message ||
+        "Could not update your profile. Please try again.",
+    });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// UPDATE PHONE
+// ─────────────────────────────────────────────────────────────
+
+export const updatePhone = async (
+  req,
+  res
+) => {
+  try {
+    const user =
+      await User.findById(
+        req.user._id
+      );
+
+    if (!user) {
+      return res.status(404).json({
+        message:
+          "User not found.",
+      });
+    }
+
+    const {
+      phone,
+      countryCode,
+    } = req.body;
+
+    const result =
+      validatePhoneForCountry(
+        phone,
+        countryCode ||
+          user.countryCode
+      );
+
+    if (!result.valid) {
+      return res.status(400).json({
+        message:
+          result.message,
+      });
+    }
+
+    user.phone =
+      result.phone;
+
+    user.countryCode =
+      result.countryCode;
+
+    const displayName =
+      new Intl.DisplayNames(
+        ["en"],
+        {
+          type: "region",
+        }
+      );
+
+    user.country =
+      displayName.of(
+        result.countryCode
+      ) ||
+      result.countryCode;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Phone number updated successfully.",
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    console.error(
+      "Update phone error:",
+      error.stack || error
+    );
+
+    return res.status(500).json({
+      message:
+        error.message ||
+        "Could not update phone number. Please try again.",
     });
   }
 };
 
 // ─────────────────────────────────────────────────────────────
 // LOGOUT
-// POST /api/auth/logout
 // ─────────────────────────────────────────────────────────────
 
-export const logout = async (req, res) => {
+export const logout = async (
+  req,
+  res
+) => {
   try {
-    res.cookie("token", "", {
-      httpOnly: true,
-      expires: new Date(0),
-      sameSite: "lax",
-      secure:
-        process.env.NODE_ENV ===
-        "production",
-    });
+    res.cookie(
+      "token",
+      "",
+      {
+        httpOnly: true,
+        expires: new Date(0),
+        sameSite: "lax",
+        secure:
+          process.env.NODE_ENV ===
+          "production",
+      }
+    );
 
     return res.status(200).json({
       success: true,
