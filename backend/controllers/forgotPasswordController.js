@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import User from "../models/user.js";
+import User from "../models/User.js";
 import { sendOTPEmail } from "../utils/sendEmail.js";
 
 console.log("🔥 FORGOT PASSWORD CONTROLLER LOADED 🔥");
