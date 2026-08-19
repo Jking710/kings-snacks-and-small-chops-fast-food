@@ -5,7 +5,10 @@ export const protect = async (req, res, next) => {
   try {
     let token = null;
 
-    // 1. Check Authorization header
+    // ─────────────────────────────────────────────────────────
+    // 1. CHECK AUTHORIZATION HEADER
+    // ─────────────────────────────────────────────────────────
+
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer ")
@@ -13,18 +16,42 @@ export const protect = async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
     }
 
-    // 2. Check HTTP-only cookie
+    // ─────────────────────────────────────────────────────────
+    // 2. CHECK HTTP-ONLY COOKIE
+    // ─────────────────────────────────────────────────────────
+
     if (!token && req.cookies?.token) {
       token = req.cookies.token;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // 3. NO TOKEN
+    // ─────────────────────────────────────────────────────────
+
     if (!token) {
+      console.error("❌ Authentication failed: no token received");
+
+      console.error("Origin:", req.headers.origin || "No origin");
+
+      console.error(
+        "Cookie received:",
+        req.cookies?.token ? "YES" : "NO",
+      );
+
+      console.error(
+        "Authorization header:",
+        req.headers.authorization ? "YES" : "NO",
+      );
+
       return res.status(401).json({
         message: "Not authenticated. Please sign in.",
       });
     }
 
-    // Verify JWT
+    // ─────────────────────────────────────────────────────────
+    // 4. VERIFY JWT
+    // ─────────────────────────────────────────────────────────
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decoded?.id) {
@@ -33,7 +60,10 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // Find the user
+    // ─────────────────────────────────────────────────────────
+    // 5. FIND USER
+    // ─────────────────────────────────────────────────────────
+
     const user = await User.findById(decoded.id);
 
     if (!user) {
@@ -42,7 +72,10 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // Attach user to request
+    // ─────────────────────────────────────────────────────────
+    // 6. ATTACH USER TO REQUEST
+    // ─────────────────────────────────────────────────────────
+
     req.user = user;
 
     next();

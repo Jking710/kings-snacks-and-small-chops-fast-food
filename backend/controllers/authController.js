@@ -45,10 +45,27 @@ const generateToken = (userId) => {
 const sendTokenResponse = (res, user, statusCode = 200) => {
   const token = generateToken(user._id);
 
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+
+    /*
+     * Vercel frontend and Render backend are different origins.
+     * The production cookie therefore needs:
+     *
+     * SameSite=None
+     * Secure=true
+     *
+     * This allows the browser to send the authentication cookie
+     * with authenticated requests from the Vercel frontend.
+     */
+    secure: isProduction,
+
+    sameSite: isProduction ? "none" : "lax",
+
+    path: "/",
+
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
@@ -61,10 +78,6 @@ const sendTokenResponse = (res, user, statusCode = 200) => {
 
 // ─────────────────────────────────────────────────────────────
 // CREATE NOTIFICATION SAFELY
-// ─────────────────────────────────────────────────────────────
-//
-// Notification errors must NEVER break login or registration.
-// The notification is a secondary operation.
 // ─────────────────────────────────────────────────────────────
 
 const createNotificationSafely = async ({
@@ -106,8 +119,6 @@ const createNotificationSafely = async ({
   } catch (error) {
     console.error("Notification creation failed:", error.stack || error);
 
-    // Do NOT throw the error.
-    // Login and registration must continue.
     return null;
   }
 };
@@ -346,7 +357,6 @@ export const register = async (req, res) => {
 
     console.log("User created:", user._id);
 
-    // Notification failure does not affect registration.
     await createWelcomeNotification(user);
 
     return sendTokenResponse(res, user, 201);
@@ -359,7 +369,10 @@ export const register = async (req, res) => {
         `--- ${new Date().toISOString()} ---\n${error.stack || error}\n\n`,
       );
     } catch (fsError) {
-      console.error("Failed to write register_error.log:", fsError.message);
+      console.error(
+        "Failed to write register_error.log:",
+        fsError.message,
+      );
     }
 
     if (error.code === 11000) {
@@ -416,12 +429,8 @@ export const login = async (req, res) => {
       });
     }
 
-    // Create notification.
-    // The helper catches notification errors.
     await createLoginNotification(user, "email");
 
-    // Login response is sent regardless of
-    // notification creation status.
     return sendTokenResponse(res, user);
   } catch (error) {
     console.error("Login error:", error.stack || error);
@@ -579,16 +588,13 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate a 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // OTP expires after 10 minutes
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
     user.resetPasswordOTP = otp;
     user.resetPasswordOTPExpiry = expiry;
 
-    // Clear any previous reset token
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpiry = undefined;
 
@@ -604,7 +610,6 @@ export const forgotPassword = async (req, res) => {
         emailError.stack || emailError,
       );
 
-      // Clear the OTP if the email was not sent
       user.resetPasswordOTP = undefined;
       user.resetPasswordOTPExpiry = undefined;
 
@@ -667,7 +672,8 @@ export const verifyOTP = async (req, res) => {
 
     if (!user.resetPasswordOTP) {
       return res.status(400).json({
-        message: "No password reset OTP was found. Please request a new OTP.",
+        message:
+          "No password reset OTP was found. Please request a new OTP.",
       });
     }
 
@@ -693,7 +699,6 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    // Generate a secure reset token
     const resetToken = jwt.sign(
       {
         id: user._id.toString(),
@@ -706,9 +711,10 @@ export const verifyOTP = async (req, res) => {
     );
 
     user.resetPasswordToken = resetToken;
-    user.resetPasswordTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    user.resetPasswordTokenExpiry = new Date(
+      Date.now() + 10 * 60 * 1000,
+    );
 
-    // OTP has now been successfully verified
     user.resetPasswordOTP = undefined;
     user.resetPasswordOTPExpiry = undefined;
 
@@ -802,12 +808,16 @@ export const resetPassword = async (req, res) => {
 
     if (user.resetPasswordToken !== resetToken.trim()) {
       return res.status(400).json({
-        message: "Invalid password reset token. Please verify your OTP again.",
+        message:
+          "Invalid password reset token. Please verify your OTP again.",
       });
     }
 
     try {
-      const decoded = jwt.verify(resetToken.trim(), process.env.JWT_SECRET);
+      const decoded = jwt.verify(
+        resetToken.trim(),
+        process.env.JWT_SECRET,
+      );
 
       if (
         decoded.purpose !== "password-reset" ||
@@ -818,7 +828,10 @@ export const resetPassword = async (req, res) => {
         });
       }
     } catch (tokenError) {
-      console.error("Reset token verification error:", tokenError.message);
+      console.error(
+        "Reset token verification error:",
+        tokenError.message,
+      );
 
       user.resetPasswordToken = undefined;
       user.resetPasswordTokenExpiry = undefined;
@@ -832,10 +845,8 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Update password
     user.password = finalPassword;
 
-    // Clear reset data
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpiry = undefined;
     user.resetPasswordOTP = undefined;
@@ -952,7 +963,11 @@ export const updateProfile = async (req, res) => {
 
       user.lastName = cleanedValue;
     } else if (field === "phone") {
-      const selectedCountry = (countryCode || user.countryCode || "")
+      const selectedCountry = (
+        countryCode ||
+        user.countryCode ||
+        ""
+      )
         .trim()
         .toUpperCase();
 
@@ -962,7 +977,10 @@ export const updateProfile = async (req, res) => {
         });
       }
 
-      const result = validatePhoneForCountry(cleanedValue, selectedCountry);
+      const result = validatePhoneForCountry(
+        cleanedValue,
+        selectedCountry,
+      );
 
       if (!result.valid) {
         return res.status(400).json({
@@ -978,7 +996,8 @@ export const updateProfile = async (req, res) => {
         type: "region",
       });
 
-      user.country = displayName.of(result.countryCode) || result.countryCode;
+      user.country =
+        displayName.of(result.countryCode) || result.countryCode;
     } else if (field === "countryCode") {
       const newCountryCode = cleanedValue.toUpperCase();
 
@@ -995,11 +1014,15 @@ export const updateProfile = async (req, res) => {
         });
       }
 
-      const result = validatePhoneForCountry(user.phone, newCountryCode);
+      const result = validatePhoneForCountry(
+        user.phone,
+        newCountryCode,
+      );
 
       if (!result.valid) {
         return res.status(400).json({
-          message: "Your phone number does not match the selected country.",
+          message:
+            "Your phone number does not match the selected country.",
         });
       }
 
@@ -1009,7 +1032,8 @@ export const updateProfile = async (req, res) => {
         type: "region",
       });
 
-      user.country = displayName.of(newCountryCode) || newCountryCode;
+      user.country =
+        displayName.of(newCountryCode) || newCountryCode;
     } else if (field === "country") {
       if (!user.phone) {
         return res.status(400).json({
@@ -1111,7 +1135,8 @@ export const updateProfile = async (req, res) => {
 
     return res.status(500).json({
       message:
-        error.message || "Could not update your profile. Please try again.",
+        error.message ||
+        "Could not update your profile. Please try again.",
     });
   }
 };
@@ -1151,7 +1176,8 @@ export const updatePhone = async (req, res) => {
       type: "region",
     });
 
-    user.country = displayName.of(result.countryCode) || result.countryCode;
+    user.country =
+      displayName.of(result.countryCode) || result.countryCode;
 
     await user.save();
 
@@ -1165,7 +1191,8 @@ export const updatePhone = async (req, res) => {
 
     return res.status(500).json({
       message:
-        error.message || "Could not update phone number. Please try again.",
+        error.message ||
+        "Could not update phone number. Please try again.",
     });
   }
 };
@@ -1176,11 +1203,18 @@ export const updatePhone = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.cookie("token", "", {
       httpOnly: true,
+
       expires: new Date(0),
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+
+      secure: isProduction,
+
+      sameSite: isProduction ? "none" : "lax",
+
+      path: "/",
     });
 
     return res.status(200).json({
