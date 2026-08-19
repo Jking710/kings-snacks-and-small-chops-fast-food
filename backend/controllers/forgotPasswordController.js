@@ -2,35 +2,45 @@ import crypto from "crypto";
 import User from "../models/User.js";
 import { sendOTPEmail } from "../utils/sendEmail.js";
 
+console.log("🔥 FORGOT PASSWORD CONTROLLER LOADED 🔥");
 
 // ─────────────────────────────────────────────────────────────
-// FORGOT PASSWORD — Send OTP to email
+// FORGOT PASSWORD
 // POST /api/auth/forgot-password
 // ─────────────────────────────────────────────────────────────
 
 export const forgotPassword = async (req, res) => {
+  console.log("🔥 FORGOT PASSWORD CONTROLLER HIT 🔥");
+  console.log("Request body:", req.body);
+
   try {
     const { email } = req.body;
 
-    // Validate email
-    if (!email) {
+    if (!email || !email.trim()) {
       return res.status(400).json({
         message: "Email is required.",
       });
     }
 
-    // Normalize email
     const normalizedEmail = email
       .toLowerCase()
       .trim();
 
-    // Find user
+    console.log(
+      "Searching for:",
+      normalizedEmail
+    );
+
     const user = await User.findOne({
       email: normalizedEmail,
     });
 
-    // Don't reveal whether the email exists
     if (!user) {
+      console.log(
+        "No user found for:",
+        normalizedEmail
+      );
+
       return res.status(200).json({
         success: true,
         message:
@@ -38,7 +48,12 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Google-only accounts don't have passwords
+    console.log(
+      "User found:",
+      user._id
+    );
+
+    // Google-only accounts do not have passwords
     if (
       user.authProvider === "google" &&
       !user.password
@@ -49,9 +64,8 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-
     // ─────────────────────────────────────────
-    // Generate 6-digit OTP
+    // GENERATE OTP
     // ─────────────────────────────────────────
 
     const otp = crypto
@@ -63,9 +77,8 @@ export const forgotPassword = async (req, res) => {
       otp
     );
 
-
     // ─────────────────────────────────────────
-    // Hash OTP before storing it
+    // HASH OTP
     // ─────────────────────────────────────────
 
     const hashedOTP = crypto
@@ -73,82 +86,82 @@ export const forgotPassword = async (req, res) => {
       .update(otp)
       .digest("hex");
 
+    console.log(
+      "Hashed OTP:",
+      hashedOTP
+    );
 
     // ─────────────────────────────────────────
-    // OTP expires in 10 minutes
+    // OTP EXPIRY
     // ─────────────────────────────────────────
 
     const otpExpiry = new Date(
       Date.now() + 10 * 60 * 1000
     );
 
-
     // ─────────────────────────────────────────
-    // DEBUG EMAIL CONFIG
-    // ─────────────────────────────────────────
-
-    console.log(
-      "========== EMAIL DEBUG =========="
-    );
-
-    console.log(
-      "EMAIL_USER:",
-      process.env.EMAIL_USER
-    );
-
-    console.log(
-      "EMAIL_PASS exists:",
-      !!process.env.EMAIL_PASS
-    );
-
-    console.log(
-      "EMAIL_PASS length:",
-      process.env.EMAIL_PASS?.length
-    );
-
-    console.log(
-      "================================="
-    );
-
-
-    // ─────────────────────────────────────────
-    // SAVE OTP BEFORE SENDING EMAIL
+    // SAVE OTP
     // ─────────────────────────────────────────
 
     user.resetPasswordOTP = hashedOTP;
-
     user.resetPasswordOTPExpiry = otpExpiry;
 
-    // Clear any previous reset token
     user.resetPasswordToken = undefined;
-
     user.resetPasswordTokenExpiry = undefined;
 
     await user.save();
 
-
-    // ─────────────────────────────────────────
-    // SEND OTP EMAIL — ONLY ONCE
-    // ─────────────────────────────────────────
-
-    await sendOTPEmail(
-      user.email,
-      otp,
-      user.firstName
+    console.log(
+      "✅ OTP saved successfully"
     );
 
+    console.log(
+      "OTP expiry:",
+      otpExpiry
+    );
+
+    // ─────────────────────────────────────────
+    // SEND EMAIL
+    // ─────────────────────────────────────────
+
+    try {
+      await sendOTPEmail(
+        user.email,
+        otp,
+        user.firstName
+      );
+
+      console.log(
+        "✅ OTP email sent successfully to:",
+        user.email
+      );
+    } catch (emailError) {
+      console.error(
+        "❌ OTP email error:",
+        emailError.stack || emailError
+      );
+
+      // Clear OTP if email sending fails
+      user.resetPasswordOTP = undefined;
+      user.resetPasswordOTPExpiry = undefined;
+
+      await user.save();
+
+      return res.status(500).json({
+        message:
+          "Failed to send OTP email. Please try again.",
+      });
+    }
 
     return res.status(200).json({
       success: true,
       message:
         "OTP sent to your email address.",
     });
-
   } catch (error) {
-
     console.error(
-      "Forgot password error:",
-      error
+      "❌ Forgot password error:",
+      error.stack || error
     );
 
     return res.status(500).json({
@@ -159,39 +172,73 @@ export const forgotPassword = async (req, res) => {
 };
 
 
-
 // ─────────────────────────────────────────────────────────────
 // VERIFY OTP
 // POST /api/auth/verify-otp
 // ─────────────────────────────────────────────────────────────
 
 export const verifyOTP = async (req, res) => {
+  console.log(
+    "🔥🔥 VERIFY OTP CONTROLLER HIT 🔥🔥"
+  );
+
+  console.log(
+    "VERIFY OTP BODY:",
+    req.body
+  );
+
   try {
+    const {
+      email,
+      otp,
+    } = req.body;
 
-    const { email, otp } = req.body;
+    // ─────────────────────────────────────────
+    // VALIDATE EMAIL
+    // ─────────────────────────────────────────
 
-
-    // Validate fields
-    if (!email || !otp) {
+    if (!email || !email.trim()) {
       return res.status(400).json({
         message:
-          "Email and OTP are required.",
+          "Email is required.",
       });
     }
 
+    // ─────────────────────────────────────────
+    // VALIDATE OTP
+    // ─────────────────────────────────────────
 
-    // Normalize email
-    const normalizedEmail = email
-      .toLowerCase()
-      .trim();
+    if (
+      otp === undefined ||
+      otp === null ||
+      !String(otp).trim()
+    ) {
+      return res.status(400).json({
+        message:
+          "OTP is required.",
+      });
+    }
 
+    const normalizedEmail =
+      email.toLowerCase().trim();
 
-    // Normalize OTP
-    const normalizedOTP = String(otp)
-      .trim();
+    const normalizedOTP =
+      String(otp).trim();
 
+    console.log(
+      "EMAIL RECEIVED:",
+      normalizedEmail
+    );
 
-    // Validate OTP format
+    console.log(
+      "OTP RECEIVED:",
+      normalizedOTP
+    );
+
+    // ─────────────────────────────────────────
+    // VALIDATE OTP FORMAT
+    // ─────────────────────────────────────────
+
     if (!/^\d{6}$/.test(normalizedOTP)) {
       return res.status(400).json({
         message:
@@ -199,9 +246,8 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-
     // ─────────────────────────────────────────
-    // Hash submitted OTP
+    // HASH SUBMITTED OTP
     // ─────────────────────────────────────────
 
     const hashedOTP = crypto
@@ -209,27 +255,54 @@ export const verifyOTP = async (req, res) => {
       .update(normalizedOTP)
       .digest("hex");
 
+    console.log(
+      "HASHED SUBMITTED OTP:",
+      hashedOTP
+    );
 
     // ─────────────────────────────────────────
-    // Find user with matching OTP
-    // AND non-expired OTP
+    // FIND USER
     // ─────────────────────────────────────────
 
     const user = await User.findOne({
       email: normalizedEmail,
-
-      resetPasswordOTP: hashedOTP,
-
-      resetPasswordOTPExpiry: {
-        $gt: new Date(),
-      },
-
     }).select(
-      "+resetPasswordOTP +resetPasswordOTPExpiry"
+      "+resetPasswordOTP +resetPasswordOTPExpiry +resetPasswordToken +resetPasswordTokenExpiry"
     );
 
+    console.log(
+      "USER RESULT:",
+      user
+        ? "USER FOUND"
+        : "USER NOT FOUND"
+    );
 
-    // OTP doesn't match or has expired
+    if (user) {
+      console.log(
+        "USER ID:",
+        user._id
+      );
+
+      console.log(
+        "STORED OTP HASH:",
+        user.resetPasswordOTP
+      );
+
+      console.log(
+        "OTP EXPIRY:",
+        user.resetPasswordOTPExpiry
+      );
+
+      console.log(
+        "CURRENT TIME:",
+        new Date()
+      );
+    }
+
+    // ─────────────────────────────────────────
+    // USER NOT FOUND
+    // ─────────────────────────────────────────
+
     if (!user) {
       return res.status(400).json({
         message:
@@ -237,30 +310,98 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
+    // ─────────────────────────────────────────
+    // OTP DOES NOT EXIST
+    // ─────────────────────────────────────────
 
-    console.log(
-      "✅ OTP verified for:",
-      normalizedEmail
-    );
-
+    if (!user.resetPasswordOTP) {
+      return res.status(400).json({
+        message:
+          "No password reset OTP was found. Please request a new OTP.",
+      });
+    }
 
     // ─────────────────────────────────────────
-    // Generate reset token
+    // CHECK OTP EXPIRY
+    // ─────────────────────────────────────────
+
+    if (
+      !user.resetPasswordOTPExpiry ||
+      user.resetPasswordOTPExpiry.getTime() <
+        Date.now()
+    ) {
+      console.log(
+        "❌ OTP HAS EXPIRED"
+      );
+
+      user.resetPasswordOTP = undefined;
+      user.resetPasswordOTPExpiry = undefined;
+
+      await user.save();
+
+      return res.status(400).json({
+        message:
+          "Your OTP has expired. Please request a new one.",
+      });
+    }
+
+    // ─────────────────────────────────────────
+    // COMPARE OTP
+    // ─────────────────────────────────────────
+
+    if (
+      user.resetPasswordOTP !==
+      hashedOTP
+    ) {
+      console.log(
+        "❌ OTP HASH DOES NOT MATCH"
+      );
+
+      console.log(
+        "Expected hash:",
+        user.resetPasswordOTP
+      );
+
+      console.log(
+        "Received hash:",
+        hashedOTP
+      );
+
+      return res.status(400).json({
+        message:
+          "Invalid OTP. Please check the code and try again.",
+      });
+    }
+
+    console.log(
+      "✅ OTP HASH MATCHED"
+    );
+
+    // ─────────────────────────────────────────
+    // GENERATE RESET TOKEN
     // ─────────────────────────────────────────
 
     const resetToken = crypto
       .randomBytes(32)
       .toString("hex");
 
+    console.log(
+      "Reset token generated."
+    );
 
-    // Hash reset token before storing
+    // ─────────────────────────────────────────
+    // HASH RESET TOKEN
+    // ─────────────────────────────────────────
+
     const hashedResetToken = crypto
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
 
+    // ─────────────────────────────────────────
+    // SAVE RESET TOKEN
+    // ─────────────────────────────────────────
 
-    // Reset token expires in 15 minutes
     user.resetPasswordToken =
       hashedResetToken;
 
@@ -269,33 +410,26 @@ export const verifyOTP = async (req, res) => {
         Date.now() + 15 * 60 * 1000
       );
 
-
-    // ─────────────────────────────────────────
-    // OTP HAS NOW BEEN USED
-    // ─────────────────────────────────────────
-
+    // OTP has now been used
     user.resetPasswordOTP = undefined;
-
     user.resetPasswordOTPExpiry = undefined;
-
 
     await user.save();
 
+    console.log(
+      "✅ RESET TOKEN SAVED"
+    );
 
     return res.status(200).json({
       success: true,
-
       message:
         "OTP verified successfully.",
-
       resetToken,
     });
-
   } catch (error) {
-
     console.error(
-      "Verify OTP error:",
-      error
+      "❌ VERIFY OTP ERROR:",
+      error.stack || error
     );
 
     return res.status(500).json({
@@ -306,26 +440,46 @@ export const verifyOTP = async (req, res) => {
 };
 
 
-
 // ─────────────────────────────────────────────────────────────
 // RESET PASSWORD
 // POST /api/auth/reset-password
 // ─────────────────────────────────────────────────────────────
 
-export const resetPassword = async (req, res) => {
-  try {
+export const resetPassword = async (
+  req,
+  res
+) => {
+  console.log(
+    "🔥 RESET PASSWORD CONTROLLER HIT 🔥"
+  );
 
+  console.log(
+    "RESET PASSWORD BODY:",
+    {
+      email: req.body?.email,
+      hasResetToken:
+        !!req.body?.resetToken,
+      hasPassword:
+        !!req.body?.newPassword,
+    }
+  );
+
+  try {
     const {
       email,
       resetToken,
       newPassword,
     } = req.body;
 
+    // ─────────────────────────────────────────
+    // VALIDATE FIELDS
+    // ─────────────────────────────────────────
 
-    // Validate fields
     if (
       !email ||
+      !email.trim() ||
       !resetToken ||
+      !resetToken.trim() ||
       !newPassword
     ) {
       return res.status(400).json({
@@ -334,8 +488,10 @@ export const resetPassword = async (req, res) => {
       });
     }
 
+    // ─────────────────────────────────────────
+    // PASSWORD LENGTH
+    // ─────────────────────────────────────────
 
-    // Password length
     if (newPassword.length < 8) {
       return res.status(400).json({
         message:
@@ -343,29 +499,31 @@ export const resetPassword = async (req, res) => {
       });
     }
 
+    // ─────────────────────────────────────────
+    // NORMALIZE EMAIL
+    // ─────────────────────────────────────────
 
-    // Normalize email
-    const normalizedEmail = email
-      .toLowerCase()
-      .trim();
-
+    const normalizedEmail =
+      email.toLowerCase().trim();
 
     // ─────────────────────────────────────────
-    // Hash reset token
+    // HASH RESET TOKEN
     // ─────────────────────────────────────────
 
     const hashedResetToken = crypto
       .createHash("sha256")
-      .update(resetToken)
+      .update(resetToken.trim())
       .digest("hex");
 
+    console.log(
+      "Hashed reset token generated."
+    );
 
     // ─────────────────────────────────────────
-    // Find user with valid reset token
+    // FIND USER
     // ─────────────────────────────────────────
 
     const user = await User.findOne({
-
       email: normalizedEmail,
 
       resetPasswordToken:
@@ -374,13 +532,21 @@ export const resetPassword = async (req, res) => {
       resetPasswordTokenExpiry: {
         $gt: new Date(),
       },
-
     }).select(
-      "+resetPasswordToken +resetPasswordTokenExpiry"
+      "+password +resetPasswordToken +resetPasswordTokenExpiry"
     );
 
+    console.log(
+      "RESET USER:",
+      user
+        ? "USER FOUND"
+        : "USER NOT FOUND"
+    );
 
-    // Reset token invalid/expired
+    // ─────────────────────────────────────────
+    // INVALID TOKEN
+    // ─────────────────────────────────────────
+
     if (!user) {
       return res.status(400).json({
         message:
@@ -388,51 +554,56 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-
     // ─────────────────────────────────────────
     // UPDATE PASSWORD
     // ─────────────────────────────────────────
 
-    // User.js pre-save hook will hash it
     user.password = newPassword;
 
-
-    // If previously Google account,
-    // allow it to become local/password account
-    if (user.authProvider === "google") {
+    // Allow Google account to use
+    // email/password after reset
+    if (
+      user.authProvider === "google"
+    ) {
       user.authProvider = "local";
     }
-
 
     // ─────────────────────────────────────────
     // CLEAR RESET INFORMATION
     // ─────────────────────────────────────────
 
-    user.resetPasswordToken = undefined;
+    user.resetPasswordToken =
+      undefined;
 
-    user.resetPasswordTokenExpiry = undefined;
+    user.resetPasswordTokenExpiry =
+      undefined;
 
-    user.resetPasswordOTP = undefined;
+    user.resetPasswordOTP =
+      undefined;
 
-    user.resetPasswordOTPExpiry = undefined;
+    user.resetPasswordOTPExpiry =
+      undefined;
 
+    // ─────────────────────────────────────────
+    // SAVE USER
+    // ─────────────────────────────────────────
 
-    // Save user
     await user.save();
 
+    console.log(
+      "✅ PASSWORD RESET SUCCESSFUL FOR:",
+      normalizedEmail
+    );
 
     return res.status(200).json({
       success: true,
-
       message:
         "Password reset successfully. You can now log in.",
     });
-
   } catch (error) {
-
     console.error(
-      "Reset password error:",
-      error
+      "❌ RESET PASSWORD ERROR:",
+      error.stack || error
     );
 
     return res.status(500).json({

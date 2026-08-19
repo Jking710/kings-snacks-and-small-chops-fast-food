@@ -10,11 +10,20 @@ import {
   logout,
 } from "../controllers/authController.js";
 
+import {
+  forgotPassword,
+  verifyOTP,
+  resetPassword,
+} from "../controllers/forgotPasswordController.js";
+
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+console.log("🔥 AUTH ROUTES FILE LOADED 🔥");
+
 // Public routes
+
 router.post(
   "/register",
   register
@@ -30,7 +39,25 @@ router.post(
   googleAuth
 );
 
+// Password reset routes
+
+router.post(
+  "/forgot-password",
+  forgotPassword
+);
+
+router.post(
+  "/verify-otp",
+  verifyOTP
+);
+
+router.post(
+  "/reset-password",
+  resetPassword
+);
+
 // Protected routes
+
 router.get(
   "/me",
   protect,

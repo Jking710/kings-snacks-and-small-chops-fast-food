@@ -2,6 +2,7 @@ import express from "express";
 
 import {
   initializeKoraPayment,
+  verifyKoraPayment,
   handleKoraWebhook,
 } from "../controllers/paymentController.js";
 
@@ -11,15 +12,22 @@ const router = express.Router();
 
 console.log("🔥 PAYMENT ROUTES FILE LOADED 🔥🔥");
 
-// Debug middleware
+// ============================================================
+// DEBUG MIDDLEWARE
+// ============================================================
+
 router.use((req, res, next) => {
   console.log("🔥 PAYMENT ROUTER ENTERED");
   console.log("🔥 PATH:", JSON.stringify(req.path));
   console.log("🔥 METHOD:", req.method);
+
   next();
 });
 
-// Test route
+// ============================================================
+// TEST ROUTE
+// ============================================================
+
 router.post("/kora/test", (req, res) => {
   console.log("🔥 KORA TEST ROUTE HIT");
 
@@ -29,17 +37,33 @@ router.post("/kora/test", (req, res) => {
   });
 });
 
-// Initialize payment
+// ============================================================
+// INITIALIZE PAYMENT
+// ============================================================
+
 router.post(
   "/kora/initialize",
   protect,
-  initializeKoraPayment
+  initializeKoraPayment,
 );
 
-// Kora webhook
+// ============================================================
+// VERIFY PAYMENT
+// ============================================================
+
+router.get(
+  "/kora/verify/:reference",
+  protect,
+  verifyKoraPayment,
+);
+
+// ============================================================
+// KORA WEBHOOK
+// ============================================================
+
 router.post(
   "/kora/webhook",
-  handleKoraWebhook
+  handleKoraWebhook,
 );
 
 export default router;

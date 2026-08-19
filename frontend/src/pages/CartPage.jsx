@@ -1,13 +1,39 @@
-import React from "react";
+import React, { useState } from "react";
+
 import {
   ShoppingCart,
   Trash2,
   Plus,
   Minus,
   ArrowLeft,
+  ImageOff,
 } from "lucide-react";
-import { useCart } from "../useCart.js";
+
+import { useCart } from "../CartContext.jsx";
 import { Link, useNavigate } from "react-router-dom";
+
+function CartItemImage({ item }) {
+  const [imageError, setImageError] = useState(false);
+
+  if (!item.img || imageError) {
+    return (
+      <div className="w-20 h-20 rounded-xl bg-[#f3ebe5] flex items-center justify-center shrink-0">
+        <ImageOff className="w-8 h-8 text-[#b99680]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-20 h-20 rounded-xl bg-[#f3ebe5] overflow-hidden shrink-0">
+      <img
+        src={item.img}
+        alt={item.name}
+        onError={() => setImageError(true)}
+        className="w-full h-full object-cover"
+      />
+    </div>
+  );
+}
 
 function CartPage() {
   const {
@@ -44,8 +70,10 @@ function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#faf9f6]">
+
       <div className="bg-linear-to-br from-[#3b2418] via-[#5a3825] to-[#7a4a2d] text-white py-10 px-6">
         <div className="max-w-4xl mx-auto">
+
           <Link
             to="/menu"
             className="flex items-center gap-2 text-[#ead9cb] hover:text-white mb-4 transition-colors text-sm"
@@ -55,23 +83,29 @@ function CartPage() {
           </Link>
 
           <div className="flex items-center gap-3">
+
             <ShoppingCart className="w-8 h-8" />
 
             <h1 className="text-3xl font-bold font-['Georgia']">
               Your Cart{" "}
+
               {totalItems > 0 && (
                 <span className="text-[#e8cdb9]">
                   ({totalItems} items)
                 </span>
               )}
             </h1>
+
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
+
         {cartItems.length === 0 ? (
+
           <div className="text-center py-20">
+
             <ShoppingCart className="w-20 h-20 text-[#d8c4b4] mx-auto mb-4" />
 
             <h3 className="text-xl font-bold text-gray-700 font-['Georgia'] mb-2">
@@ -89,20 +123,26 @@ function CartPage() {
             >
               Browse Menu
             </Link>
+
           </div>
+
         ) : (
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
             <div className="lg:col-span-2 space-y-4">
+
               {cartItems.map((item) => (
+
                 <div
                   key={item.id}
                   className="bg-white rounded-2xl p-4 shadow-sm border border-[#e8ddd5] flex items-center gap-4 hover:shadow-md transition-all"
                 >
-                  <div className="text-4xl bg-[#f3ebe5] w-16 h-16 rounded-xl flex items-center justify-center shrink-0">
-                    {item.emoji}
-                  </div>
+
+                  <CartItemImage item={item} />
 
                   <div className="flex-1 min-w-0">
+
                     <h3 className="font-bold text-gray-800 text-sm font-['Georgia'] truncate">
                       {item.name}
                     </h3>
@@ -118,9 +158,11 @@ function CartPage() {
                     <p className="text-gray-400 text-xs">
                       ₦{item.price.toLocaleString()} each
                     </p>
+
                   </div>
 
                   <div className="flex items-center gap-2">
+
                     <button
                       type="button"
                       onClick={() =>
@@ -150,6 +192,7 @@ function CartPage() {
                     >
                       <Plus className="w-4 h-4" />
                     </button>
+
                   </div>
 
                   <button
@@ -161,7 +204,9 @@ function CartPage() {
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
+
                 </div>
+
               ))}
 
               <button
@@ -172,20 +217,26 @@ function CartPage() {
                 <Trash2 className="w-4 h-4" />
                 Clear all items
               </button>
+
             </div>
 
             <div className="lg:col-span-1">
+
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e8ddd5] sticky top-24">
+
                 <h3 className="font-bold text-gray-800 text-lg font-['Georgia'] mb-4">
                   Order Summary
                 </h3>
 
                 <div className="space-y-3 text-sm text-gray-600">
+
                   {cartItems.map((item) => (
+
                     <div
                       key={item.id}
                       className="flex justify-between"
                     >
+
                       <span className="truncate mr-2">
                         {item.name} ×{item.quantity}
                       </span>
@@ -197,11 +248,15 @@ function CartPage() {
                           item.quantity
                         ).toLocaleString()}
                       </span>
+
                     </div>
+
                   ))}
+
                 </div>
 
                 <div className="border-t border-gray-100 mt-4 pt-4 space-y-2">
+
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>Subtotal</span>
 
@@ -225,6 +280,7 @@ function CartPage() {
                       ₦{grandTotal.toLocaleString()}
                     </span>
                   </div>
+
                 </div>
 
                 <div className="bg-[#f3ebe5] rounded-xl p-3 mt-4 text-xs text-[#6b4226]">
@@ -249,10 +305,15 @@ function CartPage() {
                 >
                   + Add more items
                 </Link>
+
               </div>
+
             </div>
+
           </div>
+
         )}
+
       </div>
     </div>
   );

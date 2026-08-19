@@ -1,13 +1,16 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
+
 import { CartProvider } from "./CartContext.jsx";
 import { AuthProvider } from "./AuthContext.jsx";
 import { NotificationProvider } from "./NotificationContext.jsx";
+
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import VerifyOTP from "./pages/VerifyOTP.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import PaymentPage from "./pages/PaymentPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage";
+import PaymentCallback from "./pages/PaymentCallback.jsx";
 
 // Layout components
 import Navbar from "./components/Navbar.jsx";
@@ -35,7 +38,7 @@ import TrackOrder from "./pages/TrackOrder.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import NotificationDetailsPage from "./pages/NotificationDetailsPage.jsx";
 
-//special features
+// Special features
 import BuildSnackBox from "./pages/BuildSnackBox.jsx";
 import SmartBudget from "./pages/SmartBudget.jsx";
 import GroupOrdering from "./pages/GroupOrdering.jsx";
@@ -44,7 +47,10 @@ import SurpriseMe from "./pages/SurpriseMe.jsx";
 // Auth protection
 import ProtectedRoute from "./ProtectedRoute.jsx";
 
-// Home page — all landing sections
+// ─────────────────────────────────────────────────────────────
+// HOME PAGE
+// ─────────────────────────────────────────────────────────────
+
 function HomePage() {
   return (
     <>
@@ -58,30 +64,44 @@ function HomePage() {
   );
 }
 
-// Layout with Navbar + Footer
+// ─────────────────────────────────────────────────────────────
+// MAIN LAYOUT
+// ─────────────────────────────────────────────────────────────
+
 function Layout({ children }) {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+
       <main className="flex-1">{children}</main>
+
       <Footer />
     </div>
   );
 }
 
-// Auth pages — no Navbar/Footer
+// ─────────────────────────────────────────────────────────────
+// AUTH LAYOUT
+// ─────────────────────────────────────────────────────────────
+
 function AuthLayout({ children }) {
   return <div>{children}</div>;
 }
 
+// ─────────────────────────────────────────────────────────────
+// APP
+// ─────────────────────────────────────────────────────────────
+
 function App() {
   return (
-    // AuthProvider wraps everything so all components can access auth state
     <AuthProvider>
       <CartProvider>
         <NotificationProvider>
           <Routes>
-            {/* ── Auth routes (no navbar) ─────────────────────────────── */}
+            {/* ─────────────────────────────────────────────
+                AUTH ROUTES
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/login"
               element={
@@ -90,6 +110,7 @@ function App() {
                 </AuthLayout>
               }
             />
+
             <Route
               path="/register"
               element={
@@ -98,6 +119,7 @@ function App() {
                 </AuthLayout>
               }
             />
+
             <Route
               path="/forgot-password"
               element={
@@ -115,6 +137,7 @@ function App() {
                 </AuthLayout>
               }
             />
+
             <Route
               path="/reset-password"
               element={
@@ -124,7 +147,10 @@ function App() {
               }
             />
 
-            {/* ── Public routes (with navbar) ─────────────────────────── */}
+            {/* ─────────────────────────────────────────────
+                PUBLIC HOME
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/"
               element={
@@ -133,38 +159,79 @@ function App() {
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                PROTECTED MENU
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/menu"
               element={
                 <Layout>
-                  <MenuPage />
+                  <ProtectedRoute>
+                    <MenuPage />
+                  </ProtectedRoute>
                 </Layout>
               }
             />
 
-            <Route path="/notifications" element={<NotificationsPage />} />
+            {/* ─────────────────────────────────────────────
+                NOTIFICATIONS
+            ───────────────────────────────────────────── */}
+
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/notifications/:id"
+              element={
+                <ProtectedRoute>
+                  <NotificationDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="/payment/callback" element={<PaymentCallback />} />
+
+            {/* ─────────────────────────────────────────────
+                PROTECTED SPECIAL FEATURES
+            ───────────────────────────────────────────── */}
 
             <Route
               path="/build-snack-box"
               element={
                 <Layout>
-                  <BuildSnackBox />
+                  <ProtectedRoute>
+                    <BuildSnackBox />
+                  </ProtectedRoute>
                 </Layout>
               }
             />
+
             <Route
               path="/smart-budget"
               element={
                 <Layout>
-                  <SmartBudget />
+                  <ProtectedRoute>
+                    <SmartBudget />
+                  </ProtectedRoute>
                 </Layout>
               }
             />
+
             <Route
               path="/group-ordering"
               element={
                 <Layout>
-                  <GroupOrdering />
+                  <ProtectedRoute>
+                    <GroupOrdering />
+                  </ProtectedRoute>
                 </Layout>
               }
             />
@@ -173,10 +240,17 @@ function App() {
               path="/surprise-me"
               element={
                 <Layout>
-                  <SurpriseMe />
+                  <ProtectedRoute>
+                    <SurpriseMe />
+                  </ProtectedRoute>
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                PUBLIC ABOUT
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/about"
               element={
@@ -185,14 +259,26 @@ function App() {
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                PROTECTED CONTACT
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/contact"
               element={
                 <Layout>
-                  <ContactPage />
+                  <ProtectedRoute>
+                    <ContactPage />
+                  </ProtectedRoute>
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                CART
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/cart"
               element={
@@ -201,6 +287,11 @@ function App() {
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                PAYMENT
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/payment"
               element={
@@ -209,8 +300,17 @@ function App() {
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                CHECKOUT
+            ───────────────────────────────────────────── */}
+
             <Route path="/checkout" element={<CheckoutPage />} />
-            {/* ── Protected routes — must be logged in ────────────────── */}
+
+            {/* ─────────────────────────────────────────────
+                PROTECTED PROFILE
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/profile"
               element={
@@ -221,6 +321,11 @@ function App() {
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                PROTECTED ORDER HISTORY
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/order-history"
               element={
@@ -232,6 +337,10 @@ function App() {
               }
             />
 
+            {/* ─────────────────────────────────────────────
+                PROTECTED DELIVERY CONFIRMATION
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/confirm-delivery/:id"
               element={
@@ -242,6 +351,11 @@ function App() {
                 </Layout>
               }
             />
+
+            {/* ─────────────────────────────────────────────
+                PROTECTED ORDER TRACKING
+            ───────────────────────────────────────────── */}
+
             <Route
               path="/track-order/:id"
               element={
@@ -253,25 +367,26 @@ function App() {
               }
             />
 
-            <Route
-              path="/notifications/:id"
-              element={<NotificationDetailsPage />}
-            />
+            {/* ─────────────────────────────────────────────
+                404
+            ───────────────────────────────────────────── */}
 
-            {/* ── 404 fallback ────────────────────────────────────────── */}
             <Route
               path="*"
               element={
                 <Layout>
                   <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
                     <p className="text-8xl mb-4">🍕</p>
+
                     <h2 className="text-3xl font-bold font-['Georgia'] text-gray-800 mb-2">
                       Page Not Found
                     </h2>
+
                     <p className="text-gray-500 mb-6">
                       Looks like this page went out for delivery and never came
                       back.
                     </p>
+
                     <a
                       href="/"
                       className="bg-orange-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-orange-700 transition-all hover:scale-105"
