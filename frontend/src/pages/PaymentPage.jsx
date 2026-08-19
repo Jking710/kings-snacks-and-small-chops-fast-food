@@ -57,14 +57,36 @@ function PaymentPage() {
       setLoading(true);
       setError("");
 
+      const token = localStorage.getItem("kc_token");
+
+      if (!token) {
+        setError(
+          "Your login session has expired. Please sign in again."
+        );
+
+        setLoading(false);
+        navigate("/login");
+
+        return;
+      }
+
+      const apiUrl = (
+        import.meta.env.VITE_API_URL ||
+        "http://localhost:5000"
+      ).replace(/\/+$/, "");
+
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/payments/kora/initialize`,
+        `${apiUrl}/api/payments/kora/initialize`,
         {
           method: "POST",
+
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
+
           credentials: "include",
+
           body: JSON.stringify({
             items: cartItems,
             subtotal: totalPrice,
@@ -73,37 +95,78 @@ function PaymentPage() {
             deliveryAddress,
             phone,
           }),
-        },
+        }
       );
 
       const responseText = await response.text();
 
-      console.log("Payment response status:", response.status);
-      console.log("Payment response:", responseText);
+      console.log(
+        "Payment response status:",
+        response.status
+      );
 
-      let data;
+      console.log(
+        "Payment response:",
+        responseText
+      );
+
+      let data = {};
 
       try {
-        data = JSON.parse(responseText);
+        data = responseText
+          ? JSON.parse(responseText)
+          : {};
       } catch {
         throw new Error(
-          `Server returned an empty or invalid response. Status: ${response.status}`,
+          `Server returned an invalid response. Status: ${response.status}`
         );
       }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Unable to initialize payment");
+      if (response.status === 401) {
+        localStorage.removeItem("kc_token");
+
+        setError(
+          "Your login session has expired. Please sign in again."
+        );
+
+        setLoading(false);
+
+        navigate("/login");
+
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            `Payment initialization failed with status ${response.status}.`
+        );
+      }
+
+      if (!data.success) {
+        throw new Error(
+          data.message ||
+            "Unable to initialize payment."
+        );
       }
 
       if (!data.checkoutUrl) {
-        throw new Error("Kora checkout link was not returned");
+        throw new Error(
+          "Kora checkout link was not returned."
+        );
       }
 
       window.location.href = data.checkoutUrl;
     } catch (error) {
-      console.error("Payment initialization error:", error);
+      console.error(
+        "Payment initialization error:",
+        error
+      );
 
-      setError(error.message || "Unable to start payment. Please try again.");
+      setError(
+        error.message ||
+          "Unable to start payment. Please try again."
+      );
 
       setLoading(false);
     }
@@ -124,7 +187,9 @@ function PaymentPage() {
           <div className="flex items-center gap-3">
             <CreditCard className="w-8 h-8" />
 
-            <h1 className="text-3xl font-bold font-['Georgia']">Payment</h1>
+            <h1 className="text-3xl font-bold font-['Georgia']">
+              Payment
+            </h1>
           </div>
 
           <p className="text-[#ead9cb] mt-2 text-sm">
@@ -154,7 +219,9 @@ function PaymentPage() {
               </div>
 
               <div className="bg-[#f8f3ef] rounded-2xl p-5">
-                <p className="text-sm text-gray-600 mb-2">Amount to Pay</p>
+                <p className="text-sm text-gray-600 mb-2">
+                  Amount to Pay
+                </p>
 
                 <p className="text-3xl font-bold text-[#6b4226]">
                   ₦{grandTotal.toLocaleString()}
@@ -188,7 +255,9 @@ function PaymentPage() {
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
 
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-sm text-red-700">
+                      {error}
+                    </p>
                   </div>
                 </div>
               )}
@@ -221,14 +290,20 @@ function PaymentPage() {
               </h3>
 
               <div className="space-y-3 text-sm text-gray-600">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex justify-between gap-3">
+                {cartItems.map((item, index) => (
+                  <div
+                    key={item.id || item.productId || index}
+                    className="flex justify-between gap-3"
+                  >
                     <span className="truncate">
                       {item.name} ×{item.quantity}
                     </span>
 
                     <span className="font-medium text-gray-700 whitespace-nowrap">
-                      ₦{(item.price * item.quantity).toLocaleString()}
+                      ₦
+                      {(
+                        item.price * item.quantity
+                      ).toLocaleString()}
                     </span>
                   </div>
                 ))}
@@ -238,13 +313,17 @@ function PaymentPage() {
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Subtotal</span>
 
-                  <span>₦{totalPrice.toLocaleString()}</span>
+                  <span>
+                    ₦{totalPrice.toLocaleString()}
+                  </span>
                 </div>
 
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Delivery</span>
 
-                  <span>₦{deliveryFee.toLocaleString()}</span>
+                  <span>
+                    ₦{deliveryFee.toLocaleString()}
+                  </span>
                 </div>
 
                 <div className="flex justify-between font-bold text-gray-800 text-base pt-3 border-t border-gray-100">
@@ -257,7 +336,8 @@ function PaymentPage() {
               </div>
 
               <div className="bg-[#f3ebe5] rounded-xl p-3 mt-5 text-xs text-[#6b4226]">
-                🚚 Estimated delivery: <strong>30–45 minutes</strong>
+                🚚 Estimated delivery:{" "}
+                <strong>30–45 minutes</strong>
                 <br />
                 📍 Delivering within Lagos Island & Mainland
               </div>
