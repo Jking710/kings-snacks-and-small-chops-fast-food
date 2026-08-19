@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import Order from "../models/rder.js";
+import Order from "../models/order.js";
 
 // ============================================================
 // KORA API
