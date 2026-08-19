@@ -5,7 +5,7 @@ import appstore from "../assets/appstore.png";
 import pizza from "../assets/pizza.webp";
 import alarm from "../assets/alarmclock.png";
 import discount from "../assets/discount.gif";
-import cs from "../assets/CS.png";
+import cs from "../assets/cs.png";
 import { Link } from "react-router-dom";
 
 function Hero() {
