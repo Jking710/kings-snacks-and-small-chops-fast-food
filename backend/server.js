@@ -22,10 +22,16 @@ console.log("🔥 PAYMENT ROUTES IMPORTED");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// DNS servers
+// ─────────────────────────────────────────────────────────────
+// DNS SERVERS
+// ─────────────────────────────────────────────────────────────
+
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
-// Load environment variables
+// ─────────────────────────────────────────────────────────────
+// LOAD ENVIRONMENT VARIABLES
+// ─────────────────────────────────────────────────────────────
+
 dotenv.config({
   path: path.join(__dirname, ".env"),
 });
@@ -33,18 +39,6 @@ dotenv.config({
 dotenv.config({
   path: path.join(__dirname, "config.env"),
 });
-
-// ─────────────────────────────────────────────────────────────
-// PRODUCTION URLS
-// ─────────────────────────────────────────────────────────────
-
-const FRONTEND_URL =
-  process.env.CLIENT_URL ||
-  "https://kings-snacks-and-small-chops-fast-f-ruby.vercel.app";
-
-const BACKEND_URL =
-  process.env.BACKEND_URL ||
-  "https://kings-snacks-and-small-chops-fast-food-4.onrender.com";
 
 // ─────────────────────────────────────────────────────────────
 // CONFIG FILE PARSER
@@ -81,7 +75,10 @@ function parseConfigEnvFile(filePath) {
     const keyValueMatch = line.match(/^([A-Za-z0-9 _-]+)[:=]\s*(.*)$/);
 
     if (keyValueMatch) {
-      const key = keyValueMatch[1].trim().replace(/\s+/g, "_").toUpperCase();
+      const key = keyValueMatch[1]
+        .trim()
+        .replace(/\s+/g, "_")
+        .toUpperCase();
 
       config[key] = keyValueMatch[2].trim();
     }
@@ -95,7 +92,9 @@ function parseConfigEnvFile(filePath) {
 // ─────────────────────────────────────────────────────────────
 
 function buildMongoUri() {
-  const configEnv = parseConfigEnvFile(path.join(__dirname, "config.env"));
+  const configEnv = parseConfigEnvFile(
+    path.join(__dirname, "config.env"),
+  );
 
   let uri =
     process.env.MONGO_URI ||
@@ -126,10 +125,9 @@ function buildMongoUri() {
   }
 
   if (!uri && username && password && configEnv.ATLAS_URL) {
-    uri = configEnv.ATLAS_URL.replace(/<db_username>/g, username).replace(
-      /<password>/g,
-      password,
-    );
+    uri = configEnv.ATLAS_URL
+      .replace(/<db_username>/g, username)
+      .replace(/<password>/g, password);
   }
 
   return uri;
@@ -140,6 +138,10 @@ function buildMongoUri() {
 // ─────────────────────────────────────────────────────────────
 
 const app = express();
+
+// Render runs behind a proxy.
+// This also helps production cookie handling.
+app.set("trust proxy", 1);
 
 // ─────────────────────────────────────────────────────────────
 // STARTUP INFORMATION
@@ -155,11 +157,11 @@ try {
     "pid=",
     process.pid,
   );
-
-  console.log("Frontend URL:", FRONTEND_URL);
-  console.log("Backend URL:", BACKEND_URL);
 } catch (error) {
-  console.error("Could not print startup information:", error.message);
+  console.error(
+    "Could not print startup information:",
+    error.message,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -170,7 +172,10 @@ app.use((req, res, next) => {
   try {
     res.setHeader("X-SERVER-PID", String(process.pid));
   } catch (error) {
-    console.error("Could not set server PID header:", error.message);
+    console.error(
+      "Could not set server PID header:",
+      error.message,
+    );
   }
 
   next();
@@ -182,13 +187,26 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   try {
-    console.log(">>> Incoming request", req.method, req.path);
+    console.log(
+      ">>> Incoming request",
+      req.method,
+      req.path,
+    );
 
-    console.log(">>> Origin:", req.headers.origin);
+    console.log(
+      ">>> Origin:",
+      req.headers.origin,
+    );
 
-    console.log(">>> Headers:", Object.keys(req.headers).join(", "));
+    console.log(
+      ">>> Headers:",
+      Object.keys(req.headers).join(", "),
+    );
   } catch (error) {
-    console.error("Request logging error:", error.message);
+    console.error(
+      "Request logging error:",
+      error.message,
+    );
   }
 
   next();
@@ -198,44 +216,70 @@ app.use((req, res, next) => {
 // CORS
 // ─────────────────────────────────────────────────────────────
 
+const productionFrontendUrl =
+  "https://kings-snacks-and-small-chops-fast-f-ruby.vercel.app";
+
 const allowedOrigins = [
   // Production Vercel frontend
-  FRONTEND_URL,
+  productionFrontendUrl,
 
-  // Production URL explicitly included
-  "https://kings-snacks-and-small-chops-fast-f-ruby.vercel.app",
+  // Environment variables
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
 
   // Local development
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:3000",
   "http://localhost:5177",
-];
+].filter(Boolean);
+
+console.log("🌍 Allowed CORS origins:");
+console.log(allowedOrigins);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an origin
+      // Requests without an Origin header.
+      // This includes some server-to-server requests.
       if (!origin) {
         return callback(null, true);
       }
 
-      // Development mode
-      if (process.env.NODE_ENV !== "production") {
-        return callback(null, true);
-      }
-
-      // Production mode
+      // Allow configured origins.
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      console.error(`❌ CORS blocked for origin: ${origin}`);
+      console.error(
+        `❌ CORS blocked for origin: ${origin}`,
+      );
 
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
+      return callback(
+        new Error(`CORS blocked for origin: ${origin}`),
+      );
     },
 
     credentials: true,
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Accept",
+      "Origin",
+      "X-Requested-With",
+    ],
+
+    optionsSuccessStatus: 204,
   }),
 );
 
@@ -282,10 +326,16 @@ try {
     console.log(
       "authRoutes.stack found:",
       authRoutes.stack.map((layer) => {
-        if (layer && layer.route && layer.route.path) {
+        if (
+          layer &&
+          layer.route &&
+          layer.route.path
+        ) {
           return {
             path: layer.route.path,
-            methods: Object.keys(layer.route.methods || {}),
+            methods: Object.keys(
+              layer.route.methods || {},
+            ),
           };
         }
 
@@ -295,10 +345,15 @@ try {
       }),
     );
   } else {
-    console.log("authRoutes.stack is not an array or not present");
+    console.log(
+      "authRoutes.stack is not an array or not present",
+    );
   }
 } catch (error) {
-  console.warn("Could not inspect authRoutes.stack:", error.message);
+  console.warn(
+    "Could not inspect authRoutes.stack:",
+    error.message,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -308,29 +363,51 @@ try {
 try {
   console.log("Mounted routes:");
 
-  if (app._router && Array.isArray(app._router.stack)) {
+  if (
+    app._router &&
+    Array.isArray(app._router.stack)
+  ) {
     app._router.stack.forEach((layer) => {
-      if (layer.route && layer.route.path) {
-        const methods = Object.keys(layer.route.methods).join(",");
+      if (
+        layer.route &&
+        layer.route.path
+      ) {
+        const methods = Object.keys(
+          layer.route.methods,
+        ).join(",");
 
-        console.log(`${methods} ${layer.route.path}`);
+        console.log(
+          `${methods} ${layer.route.path}`,
+        );
       } else if (
         layer.name === "router" &&
         layer.handle &&
         layer.handle.stack
       ) {
-        layer.handle.stack.forEach((routeLayer) => {
-          if (routeLayer.route && routeLayer.route.path) {
-            const methods = Object.keys(routeLayer.route.methods).join(",");
+        layer.handle.stack.forEach(
+          (routeLayer) => {
+            if (
+              routeLayer.route &&
+              routeLayer.route.path
+            ) {
+              const methods = Object.keys(
+                routeLayer.route.methods,
+              ).join(",");
 
-            console.log(`${methods} ${routeLayer.route.path}`);
-          }
-        });
+              console.log(
+                `${methods} ${routeLayer.route.path}`,
+              );
+            }
+          },
+        );
       }
     });
   }
 } catch (error) {
-  console.warn("Could not enumerate routes:", error.message);
+  console.warn(
+    "Could not enumerate routes:",
+    error.message,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -341,10 +418,18 @@ app.get("/__routes", (req, res) => {
   try {
     const routes = [];
 
-    if (app && app._router && Array.isArray(app._router.stack)) {
+    if (
+      app &&
+      app._router &&
+      Array.isArray(app._router.stack)
+    ) {
       app._router.stack.forEach((layer) => {
         try {
-          if (layer && layer.route && layer.route.path) {
+          if (
+            layer &&
+            layer.route &&
+            layer.route.path
+          ) {
             const methods = Object.keys(
               layer.route.methods || {},
             ).join(",");
@@ -363,22 +448,24 @@ app.get("/__routes", (req, res) => {
             layer.handle &&
             Array.isArray(layer.handle.stack)
           ) {
-            layer.handle.stack.forEach((routeLayer) => {
-              if (
-                routeLayer &&
-                routeLayer.route &&
-                routeLayer.route.path
-              ) {
-                const methods = Object.keys(
-                  routeLayer.route.methods || {},
-                ).join(",");
+            layer.handle.stack.forEach(
+              (routeLayer) => {
+                if (
+                  routeLayer &&
+                  routeLayer.route &&
+                  routeLayer.route.path
+                ) {
+                  const methods = Object.keys(
+                    routeLayer.route.methods || {},
+                  ).join(",");
 
-                routes.push({
-                  path: routeLayer.route.path,
-                  methods,
-                });
-              }
-            });
+                  routes.push({
+                    path: routeLayer.route.path,
+                    methods,
+                  });
+                }
+              },
+            );
 
             return;
           }
@@ -389,7 +476,10 @@ app.get("/__routes", (req, res) => {
             });
           }
         } catch (error) {
-          console.error("Route inspection error:", error.message);
+          console.error(
+            "Route inspection error:",
+            error.message,
+          );
         }
       });
     }
@@ -410,7 +500,9 @@ app.get("/__routes", (req, res) => {
 
 const MONGO_URI = buildMongoUri();
 
-const PORT = Number(process.env.PORT || 5000);
+const PORT = Number(
+  process.env.PORT || 5000,
+);
 
 // ─────────────────────────────────────────────────────────────
 // PRODUCT MODEL
@@ -430,14 +522,17 @@ const ProductSchema = new mongoose.Schema(
 
     description: String,
   },
-
   {
     timestamps: true,
   },
 );
 
 const Product =
-  mongoose.models.Product || mongoose.model("Product", ProductSchema);
+  mongoose.models.Product ||
+  mongoose.model(
+    "Product",
+    ProductSchema,
+  );
 
 // ─────────────────────────────────────────────────────────────
 // HEALTH CHECK
@@ -447,8 +542,6 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     message: "Express server is running",
-    frontend: FRONTEND_URL,
-    backend: BACKEND_URL,
   });
 });
 
@@ -464,7 +557,10 @@ app.get("/api/products", async (req, res) => {
 
     res.json(products);
   } catch (error) {
-    console.error("Unable to load products:", error.message);
+    console.error(
+      "Unable to load products:",
+      error.message,
+    );
 
     res.status(500).json({
       error: "Unable to load products",
@@ -478,11 +574,16 @@ app.get("/api/products", async (req, res) => {
 
 app.post("/api/products", async (req, res) => {
   try {
-    const product = await Product.create(req.body);
+    const product = await Product.create(
+      req.body,
+    );
 
     res.status(201).json(product);
   } catch (error) {
-    console.error("Product creation error:", error.message);
+    console.error(
+      "Product creation error:",
+      error.message,
+    );
 
     res.status(400).json({
       error: error.message,
@@ -494,14 +595,19 @@ app.post("/api/products", async (req, res) => {
 // DIRECT PAYMENT TEST
 // ─────────────────────────────────────────────────────────────
 
-app.post("/api/payments-direct-test", (req, res) => {
-  console.log("🔥🔥🔥 DIRECT PAYMENT TEST HIT 🔥🔥🔥");
+app.post(
+  "/api/payments-direct-test",
+  (req, res) => {
+    console.log(
+      "🔥🔥🔥 DIRECT PAYMENT TEST HIT 🔥🔥🔥",
+    );
 
-  return res.json({
-    success: true,
-    message: "Direct payment test works",
-  });
-});
+    return res.json({
+      success: true,
+      message: "Direct payment test works",
+    });
+  },
+);
 
 // ─────────────────────────────────────────────────────────────
 // 404 HANDLER
@@ -517,26 +623,35 @@ app.use((req, res) => {
 // GLOBAL ERROR HANDLER
 // ─────────────────────────────────────────────────────────────
 
-app.use((err, req, res, next) => {
-  try {
-    console.error("Unhandled error at", req.method, req.path);
+app.use(
+  (err, req, res, next) => {
+    try {
+      console.error(
+        "Unhandled error at",
+        req.method,
+        req.path,
+      );
 
-    if (err && err.stack) {
-      console.error(err.stack);
-    } else {
-      console.error(err);
+      if (err && err.stack) {
+        console.error(err.stack);
+      } else {
+        console.error(err);
+      }
+    } catch (logError) {
+      console.error(
+        "Error while logging error:",
+        logError.message,
+      );
     }
-  } catch (logError) {
-    console.error("Error while logging error:", logError.message);
-  }
 
-  res.status(500).json({
-    message:
-      err && err.message
-        ? err.message
-        : "Something went wrong. Please try again.",
-  });
-});
+    res.status(500).json({
+      message:
+        err && err.message
+          ? err.message
+          : "Something went wrong. Please try again.",
+    });
+  },
+);
 
 // ─────────────────────────────────────────────────────────────
 // DATABASE + SERVER START
@@ -545,35 +660,64 @@ app.use((err, req, res, next) => {
 async function startServer() {
   try {
     if (!MONGO_URI) {
-      console.error("✖ MongoDB connection string is missing.");
+      console.error(
+        "✖ MongoDB connection string is missing.",
+      );
 
-      console.error("Add MONGO_URI to your backend .env file.");
+      console.error(
+        "Add MONGO_URI to your backend .env file.",
+      );
 
       return;
     }
 
-    console.log("Connecting to MongoDB...");
+    console.log(
+      "Connecting to MongoDB...",
+    );
 
-    await mongoose.connect(MONGO_URI, {
-      autoIndex: true,
-      serverSelectionTimeoutMS: 10000,
-    });
+    await mongoose.connect(
+      MONGO_URI,
+      {
+        autoIndex: true,
+        serverSelectionTimeoutMS: 10000,
+      },
+    );
 
-    console.log("✔ Connected to MongoDB");
+    console.log(
+      "✔ Connected to MongoDB",
+    );
 
-    app.listen(PORT, () => {
-      console.log(`✔ Server running on port ${PORT}`);
+    app.listen(
+      PORT,
+      () => {
+        console.log(
+          `✔ Server running on port ${PORT}`,
+        );
 
-      console.log(`✔ Backend URL: ${BACKEND_URL}`);
+        console.log(
+          `✔ Production backend: https://kings-snacks-and-small-chops-fast-food-4.onrender.com`,
+        );
 
-      console.log(`✔ Health check: ${BACKEND_URL}/api/health`);
-    });
+        console.log(
+          `✔ Health check: https://kings-snacks-and-small-chops-fast-food-4.onrender.com/api/health`,
+        );
+
+        console.log(
+          `✔ Production frontend: ${productionFrontendUrl}`,
+        );
+      },
+    );
   } catch (error) {
-    console.error("✖ Server startup failed:");
+    console.error(
+      "✖ Server startup failed:",
+    );
 
     console.error(error.message);
   }
 }
 
-// Start the server
+// ─────────────────────────────────────────────────────────────
+// START SERVER
+// ─────────────────────────────────────────────────────────────
+
 startServer();
