@@ -7,7 +7,7 @@ import { fileURLToPath } from "url";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 import User from "../models/User.js";
-import Notification from "../models/notification.js";
+import Notification from "../models/Notification.js";
 
 // ─────────────────────────────────────────────────────────────
 // FILE PATHS
