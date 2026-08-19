@@ -1,4 +1,4 @@
-import Order from "../models/Order.js";
+import Order from "../models/order.js";
 
 /*
 ============================================================
@@ -24,21 +24,14 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    if (
-      !items ||
-      !Array.isArray(items) ||
-      items.length === 0
-    ) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Your cart is empty",
       });
     }
 
-    if (
-      !deliveryAddress ||
-      !deliveryAddress.trim()
-    ) {
+    if (!deliveryAddress || !deliveryAddress.trim()) {
       return res.status(400).json({
         success: false,
         message: "Delivery address is required",
@@ -102,10 +95,7 @@ export const createOrder = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error(
-      "Create order error:",
-      error
-    );
+    console.error("Create order error:", error);
 
     return res.status(500).json({
       success: false,
@@ -113,7 +103,6 @@ export const createOrder = async (req, res) => {
     });
   }
 };
-
 
 /*
 ============================================================
@@ -145,10 +134,7 @@ export const getMyOrders = async (req, res) => {
       --------------------------------------------------------
       */
 
-      if (
-        typeof orderObject.deliveryConfirmed !==
-        "boolean"
-      ) {
+      if (typeof orderObject.deliveryConfirmed !== "boolean") {
         orderObject.deliveryConfirmed = false;
       }
 
@@ -163,11 +149,10 @@ export const getMyOrders = async (req, res) => {
       */
 
       if (!orderObject.orderCode) {
-        orderObject.orderCode =
-          `KS-${orderObject._id
-            .toString()
-            .slice(-6)
-            .toUpperCase()}`;
+        orderObject.orderCode = `KS-${orderObject._id
+          .toString()
+          .slice(-6)
+          .toUpperCase()}`;
       }
 
       /*
@@ -197,10 +182,7 @@ export const getMyOrders = async (req, res) => {
       orders: updatedOrders,
     });
   } catch (error) {
-    console.error(
-      "Get my orders error:",
-      error
-    );
+    console.error("Get my orders error:", error);
 
     return res.status(500).json({
       success: false,
@@ -209,17 +191,13 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-
 /*
 ============================================================
 GET SINGLE ORDER
 ============================================================
 */
 
-export const getOrderById = async (
-  req,
-  res
-) => {
+export const getOrderById = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
       return res.status(401).json({
@@ -248,10 +226,7 @@ export const getOrderById = async (
     --------------------------------------------------------
     */
 
-    if (
-      typeof orderObject.deliveryConfirmed !==
-      "boolean"
-    ) {
+    if (typeof orderObject.deliveryConfirmed !== "boolean") {
       orderObject.deliveryConfirmed = false;
     }
 
@@ -260,11 +235,10 @@ export const getOrderById = async (
     }
 
     if (!orderObject.orderCode) {
-      orderObject.orderCode =
-        `KS-${orderObject._id
-          .toString()
-          .slice(-6)
-          .toUpperCase()}`;
+      orderObject.orderCode = `KS-${orderObject._id
+        .toString()
+        .slice(-6)
+        .toUpperCase()}`;
     }
 
     orderObject.deliveryConfirmationCompleted =
@@ -275,10 +249,7 @@ export const getOrderById = async (
       order: orderObject,
     });
   } catch (error) {
-    console.error(
-      "Get order error:",
-      error
-    );
+    console.error("Get order error:", error);
 
     return res.status(500).json({
       success: false,
@@ -287,36 +258,21 @@ export const getOrderById = async (
   }
 };
 
-
 /*
 ============================================================
 CONFIRM DELIVERY
 ============================================================
 */
 
-export const confirmDelivery = async (
-  req,
-  res
-) => {
+export const confirmDelivery = async (req, res) => {
   try {
-    console.log(
-      "🔥 CONFIRM DELIVERY CONTROLLER HIT"
-    );
+    console.log("🔥 CONFIRM DELIVERY CONTROLLER HIT");
 
-    console.log(
-      "Order ID:",
-      req.params.id
-    );
+    console.log("Order ID:", req.params.id);
 
-    console.log(
-      "Request body:",
-      req.body
-    );
+    console.log("Request body:", req.body);
 
-    console.log(
-      "User:",
-      req.user?._id
-    );
+    console.log("User:", req.user?._id);
 
     /*
     --------------------------------------------------------
@@ -373,8 +329,7 @@ export const confirmDelivery = async (
     if (order.deliveryConfirmed === true) {
       return res.status(400).json({
         success: false,
-        message:
-          "Delivery has already been confirmed",
+        message: "Delivery has already been confirmed",
       });
     }
 
@@ -390,8 +345,7 @@ export const confirmDelivery = async (
         .substring(2, 8)
         .toUpperCase();
 
-      order.orderCode =
-        `KS-${Date.now()}-${randomPart}`;
+      order.orderCode = `KS-${Date.now()}-${randomPart}`;
     }
 
     /*
@@ -436,34 +390,17 @@ export const confirmDelivery = async (
 
     await order.save();
 
-    console.log(
-      "✅ Delivery confirmation saved"
-    );
+    console.log("✅ Delivery confirmation saved");
 
-    console.log(
-      "Order:",
-      order._id
-    );
+    console.log("Order:", order._id);
 
-    console.log(
-      "Order code:",
-      order.orderCode
-    );
+    console.log("Order code:", order.orderCode);
 
-    console.log(
-      "Delivery confirmed:",
-      order.deliveryConfirmed
-    );
+    console.log("Delivery confirmed:", order.deliveryConfirmed);
 
-    console.log(
-      "Delivery status:",
-      order.deliveryStatus
-    );
+    console.log("Delivery status:", order.deliveryStatus);
 
-    console.log(
-      "Order status:",
-      order.orderStatus
-    );
+    console.log("Order status:", order.orderStatus);
 
     /*
     --------------------------------------------------------
@@ -482,35 +419,25 @@ export const confirmDelivery = async (
       order: {
         _id: order._id,
 
-        orderCode:
-          order.orderCode,
+        orderCode: order.orderCode,
 
-        deliveryConfirmed:
-          order.deliveryConfirmed,
+        deliveryConfirmed: order.deliveryConfirmed,
 
-        deliveryConfirmationCompleted:
-          true,
+        deliveryConfirmationCompleted: true,
 
-        deliveryStatus:
-          order.deliveryStatus,
+        deliveryStatus: order.deliveryStatus,
 
-        orderStatus:
-          order.orderStatus,
+        orderStatus: order.orderStatus,
 
-        deliveryConfirmedAt:
-          order.deliveryConfirmedAt,
+        deliveryConfirmedAt: order.deliveryConfirmedAt,
       },
     });
   } catch (error) {
-    console.error(
-      "Confirm delivery error:",
-      error
-    );
+    console.error("Confirm delivery error:", error);
 
     return res.status(500).json({
       success: false,
-      message:
-        "Failed to confirm delivery",
+      message: "Failed to confirm delivery",
     });
   }
 };
