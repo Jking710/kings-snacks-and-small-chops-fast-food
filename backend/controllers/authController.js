@@ -6,8 +6,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
-import User from "../models/User.js";
-import Notification from "../models/Notification.js";
+import User from "../models/user.js";
+import Notification from "../models/notification.js";
 
 
 // ─────────────────────────────────────────────────────────────
