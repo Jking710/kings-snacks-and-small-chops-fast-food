@@ -35,6 +35,18 @@ dotenv.config({
 });
 
 // ─────────────────────────────────────────────────────────────
+// PRODUCTION URLS
+// ─────────────────────────────────────────────────────────────
+
+const FRONTEND_URL =
+  process.env.CLIENT_URL ||
+  "https://kings-snacks-and-small-chops-fast-f-ruby.vercel.app";
+
+const BACKEND_URL =
+  process.env.BACKEND_URL ||
+  "https://kings-snacks-and-small-chops-fast-food-4.onrender.com";
+
+// ─────────────────────────────────────────────────────────────
 // CONFIG FILE PARSER
 // ─────────────────────────────────────────────────────────────
 
@@ -143,6 +155,9 @@ try {
     "pid=",
     process.pid,
   );
+
+  console.log("Frontend URL:", FRONTEND_URL);
+  console.log("Backend URL:", BACKEND_URL);
 } catch (error) {
   console.error("Could not print startup information:", error.message);
 }
@@ -184,8 +199,14 @@ app.use((req, res, next) => {
 // ─────────────────────────────────────────────────────────────
 
 const allowedOrigins = [
-  process.env.CLIENT_URL || "http://localhost:5173",
+  // Production Vercel frontend
+  FRONTEND_URL,
 
+  // Production URL explicitly included
+  "https://kings-snacks-and-small-chops-fast-f-ruby.vercel.app",
+
+  // Local development
+  "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:3000",
   "http://localhost:5177",
@@ -208,6 +229,8 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+
+      console.error(`❌ CORS blocked for origin: ${origin}`);
 
       return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
@@ -322,7 +345,9 @@ app.get("/__routes", (req, res) => {
       app._router.stack.forEach((layer) => {
         try {
           if (layer && layer.route && layer.route.path) {
-            const methods = Object.keys(layer.route.methods || {}).join(",");
+            const methods = Object.keys(
+              layer.route.methods || {},
+            ).join(",");
 
             routes.push({
               path: layer.route.path,
@@ -339,7 +364,11 @@ app.get("/__routes", (req, res) => {
             Array.isArray(layer.handle.stack)
           ) {
             layer.handle.stack.forEach((routeLayer) => {
-              if (routeLayer && routeLayer.route && routeLayer.route.path) {
+              if (
+                routeLayer &&
+                routeLayer.route &&
+                routeLayer.route.path
+              ) {
                 const methods = Object.keys(
                   routeLayer.route.methods || {},
                 ).join(",");
@@ -418,6 +447,8 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     message: "Express server is running",
+    frontend: FRONTEND_URL,
+    backend: BACKEND_URL,
   });
 });
 
@@ -458,6 +489,10 @@ app.post("/api/products", async (req, res) => {
     });
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// DIRECT PAYMENT TEST
+// ─────────────────────────────────────────────────────────────
 
 app.post("/api/payments-direct-test", (req, res) => {
   console.log("🔥🔥🔥 DIRECT PAYMENT TEST HIT 🔥🔥🔥");
@@ -527,9 +562,11 @@ async function startServer() {
     console.log("✔ Connected to MongoDB");
 
     app.listen(PORT, () => {
-      console.log(`✔ Server running on http://localhost:${PORT}`);
+      console.log(`✔ Server running on port ${PORT}`);
 
-      console.log(`✔ Health check: http://localhost:${PORT}/api/health`);
+      console.log(`✔ Backend URL: ${BACKEND_URL}`);
+
+      console.log(`✔ Health check: ${BACKEND_URL}/api/health`);
     });
   } catch (error) {
     console.error("✖ Server startup failed:");
