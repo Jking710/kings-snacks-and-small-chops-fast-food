@@ -10,7 +10,7 @@ const KORA_API_URL =
   "https://api.korapay.com/merchant/api/v1";
 
 // ============================================================
-// PRODUCTION URLS
+// URL CONFIGURATION
 // ============================================================
 
 const FRONTEND_URL =
@@ -23,12 +23,107 @@ const BACKEND_URL =
   "https://kings-snacks-and-small-chops-fast-food-4.onrender.com";
 
 // ============================================================
-// LOG PRODUCTION URLS
+// CLEAN URL
 // ============================================================
 
-console.log("🌐 PAYMENT CONTROLLER CONFIG");
-console.log("🌐 FRONTEND_URL:", FRONTEND_URL);
-console.log("🌐 BACKEND_URL:", BACKEND_URL);
+const cleanUrl = (url) => {
+  return String(url || "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\/+$/, "");
+};
+
+// ============================================================
+// FINAL FRONTEND URL
+// ============================================================
+
+const FRONTEND_BASE_URL = cleanUrl(FRONTEND_URL);
+const BACKEND_BASE_URL = cleanUrl(BACKEND_URL);
+
+// ============================================================
+// CREATE FRONTEND REDIRECT URL
+// ============================================================
+
+const createFrontendUrl = (params = {}) => {
+  const url = new URL(
+    `${FRONTEND_BASE_URL}/order-history`
+  );
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (
+      value !== undefined &&
+      value !== null &&
+      value !== ""
+    ) {
+      url.searchParams.set(key, String(value));
+    }
+  });
+
+  return url.toString();
+};
+
+// ============================================================
+// SEND FRONTEND REDIRECT
+// ============================================================
+//
+// We do not use res.redirect() here.
+//
+// Render + Kora callback can sometimes produce
+// ERR_INVALID_REDIRECT when Express sends the redirect
+// response directly.
+//
+// Instead, we return a normal HTML response.
+// The browser then moves to the Vercel page.
+//
+// ============================================================
+
+const sendFrontendRedirect = (res, destination) => {
+  const safeDestination = String(destination)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  console.log("🚀 FRONTEND DESTINATION:");
+  console.log(destination);
+
+  res.status(200);
+
+  res.setHeader(
+    "Content-Type",
+    "text/html; charset=utf-8"
+  );
+
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate"
+  );
+
+  return res.end(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <meta
+    http-equiv="refresh"
+    content="0;url=${safeDestination}"
+  />
+  <title>Payment Complete</title>
+</head>
+<body>
+  <p>Payment processed successfully.</p>
+
+  <script>
+    window.location.replace(${JSON.stringify(destination)});
+  </script>
+</body>
+</html>
+  `);
+};
 
 // ============================================================
 // GENERATE UNIQUE ORDER CODE
@@ -38,8 +133,14 @@ const generateOrderCode = () => {
   const date = new Date();
 
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
 
   const randomPart = crypto
     .randomBytes(3)
@@ -55,9 +156,19 @@ const generateOrderCode = () => {
 
 export const initializeKoraPayment = async (req, res) => {
   try {
-    console.log("🔥 KORA INITIALIZE CONTROLLER HIT");
-    console.log("👤 User:", req.user?._id);
-    console.log("📦 Request body:", req.body);
+    console.log(
+      "🔥 KORA INITIALIZE CONTROLLER HIT"
+    );
+
+    console.log(
+      "👤 User:",
+      req.user?._id
+    );
+
+    console.log(
+      "📦 Request body:",
+      req.body
+    );
 
     const {
       items,
@@ -73,11 +184,14 @@ export const initializeKoraPayment = async (req, res) => {
     // ==========================================================
 
     if (!req.user || !req.user._id) {
-      console.error("❌ User authentication missing");
+      console.error(
+        "❌ User authentication missing"
+      );
 
       return res.status(401).json({
         success: false,
-        message: "User authentication is required",
+        message:
+          "User authentication is required",
       });
     }
 
@@ -85,7 +199,10 @@ export const initializeKoraPayment = async (req, res) => {
     // VALIDATION
     // ==========================================================
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
       return res.status(400).json({
         success: false,
         message: "Your cart is empty",
@@ -99,7 +216,8 @@ export const initializeKoraPayment = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Delivery address is required",
+        message:
+          "Delivery address is required",
       });
     }
 
@@ -110,7 +228,8 @@ export const initializeKoraPayment = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Phone number is required",
+        message:
+          "Phone number is required",
       });
     }
 
@@ -121,57 +240,76 @@ export const initializeKoraPayment = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid order amount",
+        message:
+          "Invalid order amount",
       });
     }
 
     if (totalAmount <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid payment amount",
+        message:
+          "Invalid payment amount",
       });
     }
 
-    console.log("✅ Order validation passed");
+    console.log(
+      "✅ Order validation passed"
+    );
 
     // ==========================================================
     // KORA SECRET KEY
     // ==========================================================
 
     if (!process.env.KORA_SECRET_KEY) {
-      console.error("❌ KORA_SECRET_KEY is missing");
+      console.error(
+        "❌ KORA_SECRET_KEY is missing"
+      );
 
       return res.status(500).json({
         success: false,
-        message: "Kora payment configuration is missing",
+        message:
+          "Kora payment configuration is missing",
       });
     }
 
-    console.log("✅ Kora secret key found");
+    console.log(
+      "✅ Kora secret key found"
+    );
 
     // ==========================================================
     // CONVERT CART ITEMS
     // ==========================================================
 
     const orderItems = items.map((item) => {
-      const productId = new mongoose.Types.ObjectId();
+      const productId =
+        new mongoose.Types.ObjectId();
 
       return {
         productId,
 
-        name: String(item.name || "").trim(),
+        name: String(
+          item.name || ""
+        ).trim(),
 
-        price: Number(item.price),
+        price: Number(
+          item.price
+        ),
 
-        quantity: Number(item.quantity),
+        quantity: Number(
+          item.quantity
+        ),
 
-        image: item.img || item.image || "",
+        image:
+          item.img ||
+          item.image ||
+          "",
       };
     });
 
     console.log(
       "📦 Converted order items:",
-      orderItems,
+      orderItems
     );
 
     // ==========================================================
@@ -184,16 +322,17 @@ export const initializeKoraPayment = async (req, res) => {
         .toString("hex")
         .toUpperCase()}`;
 
-    const orderCode = generateOrderCode();
+    const orderCode =
+      generateOrderCode();
 
     console.log(
       "🔥 Transaction reference:",
-      reference,
+      reference
     );
 
     console.log(
       "🔥 Order code:",
-      orderCode,
+      orderCode
     );
 
     // ==========================================================
@@ -201,7 +340,7 @@ export const initializeKoraPayment = async (req, res) => {
     // ==========================================================
 
     console.log(
-      "🔥 Creating order in MongoDB...",
+      "🔥 Creating order in MongoDB..."
     );
 
     const order = await Order.create({
@@ -238,12 +377,12 @@ export const initializeKoraPayment = async (req, res) => {
 
     console.log(
       "✅ Order created:",
-      order._id,
+      order._id
     );
 
     console.log(
       "🧾 Order code:",
-      order.orderCode,
+      order.orderCode
     );
 
     // ==========================================================
@@ -251,29 +390,29 @@ export const initializeKoraPayment = async (req, res) => {
     // ==========================================================
 
     const redirectUrl =
-      `${BACKEND_URL}/api/payments/kora/callback`;
+      `${BACKEND_BASE_URL}/api/payments/kora/callback`;
 
     const notificationUrl =
-      `${BACKEND_URL}/api/payments/kora/webhook`;
+      `${BACKEND_BASE_URL}/api/payments/kora/webhook`;
 
     console.log(
       "🌐 Frontend URL:",
-      FRONTEND_URL,
+      FRONTEND_BASE_URL
     );
 
     console.log(
       "🌐 Backend URL:",
-      BACKEND_URL,
+      BACKEND_BASE_URL
     );
 
     console.log(
       "🔗 Redirect URL:",
-      redirectUrl,
+      redirectUrl
     );
 
     console.log(
       "🔗 Notification URL:",
-      notificationUrl,
+      notificationUrl
     );
 
     // ==========================================================
@@ -308,7 +447,9 @@ export const initializeKoraPayment = async (req, res) => {
 
       customer: {
         name:
-          `${req.user.firstName} ${req.user.lastName}`,
+          `${req.user.firstName || ""} ${
+            req.user.lastName || ""
+          }`.trim(),
 
         email:
           req.user.email,
@@ -323,7 +464,7 @@ export const initializeKoraPayment = async (req, res) => {
     };
 
     console.log(
-      "📤 Sending payment request to Kora...",
+      "📤 Sending payment request to Kora..."
     );
 
     // ==========================================================
@@ -345,13 +486,15 @@ export const initializeKoraPayment = async (req, res) => {
           },
 
           body:
-            JSON.stringify(koraPayload),
-        },
+            JSON.stringify(
+              koraPayload
+            ),
+        }
       );
 
     console.log(
       "🔥 Kora HTTP status:",
-      response.status,
+      response.status
     );
 
     // ==========================================================
@@ -363,22 +506,24 @@ export const initializeKoraPayment = async (req, res) => {
 
     console.log(
       "🔥 Raw Kora response:",
-      responseText,
+      responseText
     );
 
     let data;
 
     try {
       data =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText
+        );
     } catch (error) {
       console.error(
         "❌ Kora returned invalid JSON:",
-        error,
+        error
       );
 
       await Order.findByIdAndDelete(
-        order._id,
+        order._id
       );
 
       return res.status(502).json({
@@ -390,7 +535,7 @@ export const initializeKoraPayment = async (req, res) => {
 
     console.log(
       "🔥 Parsed Kora response:",
-      data,
+      data
     );
 
     // ==========================================================
@@ -403,11 +548,11 @@ export const initializeKoraPayment = async (req, res) => {
     ) {
       console.error(
         "❌ Kora payment initialization failed:",
-        data,
+        data
       );
 
       await Order.findByIdAndDelete(
-        order._id,
+        order._id
       );
 
       return res.status(400).json({
@@ -430,11 +575,11 @@ export const initializeKoraPayment = async (req, res) => {
     if (!checkoutUrl) {
       console.error(
         "❌ Kora did not return checkout_url:",
-        data,
+        data
       );
 
       await Order.findByIdAndDelete(
-        order._id,
+        order._id
       );
 
       return res.status(502).json({
@@ -449,12 +594,12 @@ export const initializeKoraPayment = async (req, res) => {
     // ==========================================================
 
     console.log(
-      "✅ Kora payment initialized successfully",
+      "✅ Kora payment initialized successfully"
     );
 
     console.log(
       "🔗 Checkout URL:",
-      checkoutUrl,
+      checkoutUrl
     );
 
     return res.status(200).json({
@@ -476,7 +621,7 @@ export const initializeKoraPayment = async (req, res) => {
 
   } catch (error) {
     console.error(
-      "🔥 Kora payment initialization error:",
+      "🔥 Kora payment initialization error:"
     );
 
     console.error(error);
@@ -497,7 +642,7 @@ export const initializeKoraPayment = async (req, res) => {
 
 export const verifyKoraPayment = async (
   req,
-  res,
+  res
 ) => {
   try {
     const {
@@ -505,17 +650,13 @@ export const verifyKoraPayment = async (
     } = req.params;
 
     console.log(
-      "🔥 VERIFY KORA PAYMENT",
+      "🔥 VERIFY KORA PAYMENT"
     );
 
     console.log(
       "🔥 Reference:",
-      reference,
+      reference
     );
-
-    // ==========================================================
-    // VALIDATE REFERENCE
-    // ==========================================================
 
     if (!reference) {
       return res.status(400).json({
@@ -526,15 +667,7 @@ export const verifyKoraPayment = async (
       });
     }
 
-    // ==========================================================
-    // CHECK SECRET
-    // ==========================================================
-
     if (!process.env.KORA_SECRET_KEY) {
-      console.error(
-        "❌ KORA_SECRET_KEY is missing",
-      );
-
       return res.status(500).json({
         success: false,
         paid: false,
@@ -542,10 +675,6 @@ export const verifyKoraPayment = async (
           "Kora payment configuration is missing",
       });
     }
-
-    // ==========================================================
-    // FIND ORDER
-    // ==========================================================
 
     const order =
       await Order.findOne({
@@ -556,7 +685,7 @@ export const verifyKoraPayment = async (
     if (!order) {
       console.error(
         "❌ Order not found:",
-        reference,
+        reference
       );
 
       return res.status(404).json({
@@ -569,17 +698,13 @@ export const verifyKoraPayment = async (
 
     console.log(
       "✅ Order found:",
-      order.orderCode,
+      order.orderCode
     );
-
-    // ==========================================================
-    // QUERY KORA
-    // ==========================================================
 
     const response =
       await fetch(
         `${KORA_API_URL}/charges/${encodeURIComponent(
-          reference,
+          reference
         )}`,
         {
           method: "GET",
@@ -591,7 +716,7 @@ export const verifyKoraPayment = async (
             "Content-Type":
               "application/json",
           },
-        },
+        }
       );
 
     const responseText =
@@ -599,28 +724,22 @@ export const verifyKoraPayment = async (
 
     console.log(
       "🔥 Kora verification status:",
-      response.status,
+      response.status
     );
 
     console.log(
       "🔥 Kora verification response:",
-      responseText,
+      responseText
     );
-
-    // ==========================================================
-    // PARSE RESPONSE
-    // ==========================================================
 
     let data;
 
     try {
       data =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText
+        );
     } catch (error) {
-      console.error(
-        "❌ Invalid JSON from Kora",
-      );
-
       return res.status(502).json({
         success: false,
         paid: false,
@@ -629,19 +748,10 @@ export const verifyKoraPayment = async (
       });
     }
 
-    // ==========================================================
-    // KORA RESPONSE ERROR
-    // ==========================================================
-
     if (
       !response.ok ||
       !data.status
     ) {
-      console.error(
-        "❌ Kora verification failed:",
-        data,
-      );
-
       return res.status(400).json({
         success: false,
         paid: false,
@@ -651,26 +761,18 @@ export const verifyKoraPayment = async (
       });
     }
 
-    // ==========================================================
-    // PAYMENT
-    // ==========================================================
-
     const payment =
       data.data;
 
     console.log(
       "🔥 Kora payment status:",
-      payment?.status,
+      payment?.status
     );
 
     const normalizedStatus =
       String(
-        payment?.status || "",
+        payment?.status || ""
       ).toLowerCase();
-
-    // ==========================================================
-    // PAYMENT NOT SUCCESSFUL
-    // ==========================================================
 
     if (
       normalizedStatus !==
@@ -703,30 +805,20 @@ export const verifyKoraPayment = async (
     const paidAmount =
       Number(
         payment?.amount_paid ??
-        payment?.amount,
+        payment?.amount
       );
 
     const expectedAmount =
       Number(
-        order.totalAmount,
+        order.totalAmount
       );
-
-    console.log(
-      "💰 Paid amount:",
-      paidAmount,
-    );
-
-    console.log(
-      "💰 Expected amount:",
-      expectedAmount,
-    );
 
     if (
       paidAmount !==
       expectedAmount
     ) {
       console.error(
-        "❌ Payment amount mismatch",
+        "❌ Payment amount mismatch"
       );
 
       return res.status(400).json({
@@ -761,25 +853,16 @@ export const verifyKoraPayment = async (
       await order.save();
 
       console.log(
-        `✅ Order ${order.orderCode} marked as PAID`,
-      );
-    } else {
-      console.log(
-        "ℹ️ Order is already marked as PAID",
+        `✅ Order ${order.orderCode} marked as PAID`
       );
     }
-
-    // ==========================================================
-    // SUCCESS
-    // ==========================================================
 
     return res.status(200).json({
       success: true,
 
       paid: true,
 
-      status:
-        "success",
+      status: "success",
 
       orderId:
         order._id,
@@ -794,14 +877,12 @@ export const verifyKoraPayment = async (
   } catch (error) {
     console.error(
       "❌ Kora verification error:",
-      error,
+      error
     );
 
     return res.status(500).json({
       success: false,
-
       paid: false,
-
       message:
         error.message ||
         "Payment verification failed",
@@ -812,40 +893,29 @@ export const verifyKoraPayment = async (
 // ============================================================
 // KORA CALLBACK
 // ============================================================
-//
-// Kora sends the customer here after payment.
-//
-// IMPORTANT:
-//
-// This route does NOT use authentication.
-//
-// The webhook might already have marked the order as paid.
-// In that case, we immediately redirect to Order History.
-//
-// ============================================================
 
 export const handleKoraCallback = async (
   req,
-  res,
+  res
 ) => {
   try {
     console.log(
-      "🔥🔥 KORA CALLBACK RECEIVED 🔥🔥",
+      "🔥🔥 KORA CALLBACK RECEIVED 🔥🔥"
     );
 
     console.log(
       "🔥 Callback URL:",
-      `${BACKEND_URL}/api/payments/kora/callback`,
+      `${BACKEND_BASE_URL}/api/payments/kora/callback`
     );
 
     console.log(
       "🔥 Callback query:",
-      req.query,
+      req.query
     );
 
     console.log(
       "🔥 Callback body:",
-      req.body,
+      req.body
     );
 
     // ==========================================================
@@ -859,7 +929,7 @@ export const handleKoraCallback = async (
 
     console.log(
       "🔥 Extracted Kora reference:",
-      reference,
+      reference
     );
 
     // ==========================================================
@@ -868,43 +938,41 @@ export const handleKoraCallback = async (
 
     if (!reference) {
       console.error(
-        "❌ Kora callback reference missing",
+        "❌ Kora callback reference missing"
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=failed&reason=missing_reference`;
+      const destination =
+        createFrontendUrl({
+          payment: "failed",
+          reason:
+            "missing_reference",
+        });
 
-      console.log(
-        "🚀 Redirecting to:",
-        redirectUrl,
-      );
-
-      return res.redirect(
-        302,
-        redirectUrl,
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
     // ==========================================================
-    // CHECK SECRET
+    // CHECK SECRET KEY
     // ==========================================================
 
     if (!process.env.KORA_SECRET_KEY) {
       console.error(
-        "❌ KORA_SECRET_KEY is missing",
+        "❌ KORA_SECRET_KEY is missing"
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=failed&reason=configuration`;
+      const destination =
+        createFrontendUrl({
+          payment: "failed",
+          reason:
+            "configuration",
+        });
 
-      console.log(
-        "🚀 Redirecting to:",
-        redirectUrl,
-      );
-
-      return res.redirect(
-        302,
-        redirectUrl,
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
@@ -921,41 +989,34 @@ export const handleKoraCallback = async (
     if (!order) {
       console.error(
         "❌ Callback order not found:",
-        reference,
+        reference
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=failed&reason=order_not_found`;
+      const destination =
+        createFrontendUrl({
+          payment: "failed",
+          reason:
+            "order_not_found",
+        });
 
-      console.log(
-        "🚀 Redirecting to:",
-        redirectUrl,
-      );
-
-      return res.redirect(
-        302,
-        redirectUrl,
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
     console.log(
       "✅ Callback order found:",
-      order.orderCode,
+      order.orderCode
     );
 
     console.log(
       "💳 Current payment status:",
-      order.paymentStatus,
+      order.paymentStatus
     );
 
     // ==========================================================
-    // WEBHOOK ALREADY CONFIRMED PAYMENT
-    // ==========================================================
-    //
-    // This is the branch your current logs are reaching.
-    //
-    // We MUST redirect here.
-    //
+    // WEBHOOK ALREADY MARKED PAYMENT AS PAID
     // ==========================================================
 
     if (
@@ -963,25 +1024,28 @@ export const handleKoraCallback = async (
       "paid"
     ) {
       console.log(
-        "ℹ️ Webhook already marked order as PAID",
+        "ℹ️ Webhook already marked order as PAID"
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=success&orderId=${order._id}&orderCode=${encodeURIComponent(
-          order.orderCode,
-        )}`;
+      const destination =
+        createFrontendUrl({
+          payment: "success",
+
+          orderId:
+            order._id,
+
+          orderCode:
+            order.orderCode,
+        });
 
       console.log(
-        "🚀🚀 REDIRECTING CUSTOMER TO:",
+        "🚀 Sending customer to:",
+        destination
       );
 
-      console.log(
-        redirectUrl,
-      );
-
-      return res.redirect(
-        302,
-        redirectUrl,
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
@@ -990,17 +1054,17 @@ export const handleKoraCallback = async (
     // ==========================================================
 
     console.log(
-      "🔍 Order is not marked as paid yet.",
+      "🔍 Order is not marked as paid yet."
     );
 
     console.log(
-      "🔍 Verifying transaction directly with Kora...",
+      "🔍 Verifying transaction directly with Kora..."
     );
 
     const response =
       await fetch(
         `${KORA_API_URL}/charges/${encodeURIComponent(
-          reference,
+          reference
         )}`,
         {
           method: "GET",
@@ -1012,7 +1076,7 @@ export const handleKoraCallback = async (
             "Content-Type":
               "application/json",
           },
-        },
+        }
       );
 
     const responseText =
@@ -1020,12 +1084,12 @@ export const handleKoraCallback = async (
 
     console.log(
       "🔥 Callback Kora HTTP status:",
-      response.status,
+      response.status
     );
 
     console.log(
       "🔥 Callback Kora response:",
-      responseText,
+      responseText
     );
 
     // ==========================================================
@@ -1036,23 +1100,28 @@ export const handleKoraCallback = async (
 
     try {
       data =
-        JSON.parse(responseText);
+        JSON.parse(
+          responseText
+        );
     } catch (error) {
       console.error(
-        "❌ Invalid JSON returned by Kora",
+        "❌ Invalid JSON returned by Kora"
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=failed&reason=invalid_kora_response`;
+      const destination =
+        createFrontendUrl({
+          payment: "failed",
 
-      console.log(
-        "🚀 Redirecting to:",
-        redirectUrl,
-      );
+          orderId:
+            order._id,
 
-      return res.redirect(
-        302,
-        redirectUrl,
+          reason:
+            "invalid_kora_response",
+        });
+
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
@@ -1066,22 +1135,22 @@ export const handleKoraCallback = async (
     ) {
       console.error(
         "❌ Kora callback verification failed:",
-        data,
+        data
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=failed&reference=${encodeURIComponent(
+      const destination =
+        createFrontendUrl({
+          payment: "failed",
+
+          orderId:
+            order._id,
+
           reference,
-        )}`;
+        });
 
-      console.log(
-        "🚀 Redirecting to:",
-        redirectUrl,
-      );
-
-      return res.redirect(
-        302,
-        redirectUrl,
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
@@ -1094,12 +1163,12 @@ export const handleKoraCallback = async (
 
     console.log(
       "🔥 Callback payment status:",
-      payment?.status,
+      payment?.status
     );
 
     console.log(
       "🔥 Callback payment reference:",
-      payment?.payment_reference,
+      payment?.payment_reference
     );
 
     // ==========================================================
@@ -1108,7 +1177,7 @@ export const handleKoraCallback = async (
 
     const normalizedPaymentStatus =
       String(
-        payment?.status || "",
+        payment?.status || ""
       ).toLowerCase();
 
     if (
@@ -1117,20 +1186,23 @@ export const handleKoraCallback = async (
     ) {
       console.log(
         "⏳ Callback payment is not successful:",
-        payment?.status,
+        payment?.status
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=pending&orderId=${order._id}`;
+      const destination =
+        createFrontendUrl({
+          payment: "pending",
 
-      console.log(
-        "🚀 Redirecting to:",
-        redirectUrl,
-      );
+          orderId:
+            order._id,
 
-      return res.redirect(
-        302,
-        redirectUrl,
+          orderCode:
+            order.orderCode,
+        });
+
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
@@ -1141,22 +1213,22 @@ export const handleKoraCallback = async (
     const paidAmount =
       Number(
         payment?.amount_paid ??
-        payment?.amount,
+        payment?.amount
       );
 
     const expectedAmount =
       Number(
-        order.totalAmount,
+        order.totalAmount
       );
 
     console.log(
       "💰 Callback paid amount:",
-      paidAmount,
+      paidAmount
     );
 
     console.log(
       "💰 Callback expected amount:",
-      expectedAmount,
+      expectedAmount
     );
 
     if (
@@ -1164,20 +1236,26 @@ export const handleKoraCallback = async (
       expectedAmount
     ) {
       console.error(
-        "❌ Callback payment amount mismatch",
+        "❌ Callback payment amount mismatch"
       );
 
-      const redirectUrl =
-        `${FRONTEND_URL}/order-history?payment=failed&orderId=${order._id}&reason=amount_mismatch`;
+      const destination =
+        createFrontendUrl({
+          payment: "failed",
 
-      console.log(
-        "🚀 Redirecting to:",
-        redirectUrl,
-      );
+          orderId:
+            order._id,
 
-      return res.redirect(
-        302,
-        redirectUrl,
+          orderCode:
+            order.orderCode,
+
+          reason:
+            "amount_mismatch",
+        });
+
+      return sendFrontendRedirect(
+        res,
+        destination
       );
     }
 
@@ -1201,49 +1279,67 @@ export const handleKoraCallback = async (
     await order.save();
 
     console.log(
-      `✅ Callback marked order ${order.orderCode} as PAID`,
+      `✅ Callback marked order ${order.orderCode} as PAID`
     );
 
     // ==========================================================
-    // FINAL REDIRECT
+    // SEND CUSTOMER TO ORDER HISTORY
     // ==========================================================
 
-    const redirectUrl =
-      `${FRONTEND_URL}/order-history?payment=success&orderId=${order._id}&orderCode=${encodeURIComponent(
-        order.orderCode,
-      )}`;
+    const destination =
+      createFrontendUrl({
+        payment: "success",
+
+        orderId:
+          order._id,
+
+        orderCode:
+          order.orderCode,
+      });
 
     console.log(
-      "🚀🚀 REDIRECTING CUSTOMER TO:",
+      "🚀🚀 CUSTOMER REDIRECT DESTINATION:"
     );
 
     console.log(
-      redirectUrl,
+      destination
     );
 
-    return res.redirect(
-      302,
-      redirectUrl,
+    return sendFrontendRedirect(
+      res,
+      destination
     );
 
   } catch (error) {
     console.error(
       "❌ Kora callback error:",
-      error,
+      error
     );
 
-    const redirectUrl =
-      `${FRONTEND_URL}/order-history?payment=failed&reason=callback_error`;
+    try {
+      const destination =
+        createFrontendUrl({
+          payment: "failed",
 
-    console.log(
-      "🚀 Redirecting to:",
-      redirectUrl,
-    );
+          reason:
+            "callback_error",
+        });
 
-    return res.redirect(
-      302,
-      redirectUrl,
-    );
+      return sendFrontendRedirect(
+        res,
+        destination
+      );
+
+    } catch (redirectError) {
+      console.error(
+        "❌ Could not create frontend destination:",
+        redirectError
+      );
+
+      return res.status(500).send(
+        "Payment callback failed."
+      );
+    }
   }
 };
 
@@ -1253,15 +1349,15 @@ export const handleKoraCallback = async (
 
 export const handleKoraWebhook = async (
   req,
-  res,
+  res
 ) => {
   try {
     console.log(
-      "🔥 Kora webhook received",
+      "🔥 Kora webhook received"
     );
 
     // ==========================================================
-    // GET SIGNATURE
+    // CHECK KORA SIGNATURE
     // ==========================================================
 
     const signature =
@@ -1269,118 +1365,126 @@ export const handleKoraWebhook = async (
         "x-korapay-signature"
       ];
 
-    const webhookSecret =
-      process.env.KORA_SECRET_KEY;
-
-    if (
-      !signature ||
-      !webhookSecret
-    ) {
+    if (!signature) {
       console.error(
-        "❌ Missing webhook signature or secret",
+        "❌ Kora webhook signature missing"
       );
 
-      return res.status(200).json({
+      return res.status(401).json({
         success: false,
         message:
-          "Invalid webhook request",
+          "Webhook signature missing",
       });
     }
 
-    // ==========================================================
-    // VERIFY SIGNATURE
-    // ==========================================================
+    if (!process.env.KORA_SECRET_KEY) {
+      console.error(
+        "❌ KORA_SECRET_KEY is missing"
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Kora payment configuration is missing",
+      });
+    }
+
+    const payload =
+      JSON.stringify(req.body);
 
     const expectedSignature =
       crypto
         .createHmac(
           "sha256",
-          webhookSecret,
+          process.env.KORA_SECRET_KEY
         )
-        .update(
-          JSON.stringify(
-            req.body.data,
-          ),
-        )
+        .update(payload)
         .digest("hex");
 
-    if (
-      signature !==
-      expectedSignature
-    ) {
-      console.error(
-        "❌ Invalid Kora webhook signature",
+    const receivedBuffer =
+      Buffer.from(
+        String(signature),
+        "utf8"
       );
 
-      return res.status(200).json({
+    const expectedBuffer =
+      Buffer.from(
+        expectedSignature,
+        "utf8"
+      );
+
+    let signatureValid =
+      false;
+
+    if (
+      receivedBuffer.length ===
+      expectedBuffer.length
+    ) {
+      signatureValid =
+        crypto.timingSafeEqual(
+          receivedBuffer,
+          expectedBuffer
+        );
+    }
+
+    if (!signatureValid) {
+      console.error(
+        "❌ Invalid Kora webhook signature"
+      );
+
+      return res.status(401).json({
         success: false,
         message:
-          "Invalid signature",
+          "Invalid webhook signature",
       });
     }
 
     console.log(
-      "✅ Kora webhook signature verified",
+      "✅ Kora webhook signature verified"
     );
 
     // ==========================================================
     // GET WEBHOOK DATA
     // ==========================================================
 
-    const {
-      event,
-      data,
-    } = req.body;
+    const event =
+      req.body?.event ||
+      req.body?.type;
+
+    const webhookData =
+      req.body?.data ||
+      {};
+
+    const reference =
+      webhookData?.reference ||
+      webhookData?.transaction_reference ||
+      webhookData?.payment_reference;
 
     console.log(
       "🔥 Kora webhook event:",
-      event,
+      event
     );
-
-    // ==========================================================
-    // IGNORE OTHER EVENTS
-    // ==========================================================
-
-    if (
-      event !==
-      "charge.success"
-    ) {
-      console.log(
-        "ℹ️ Ignoring webhook event:",
-        event,
-      );
-
-      return res.status(200).json({
-        success: true,
-        message:
-          "Webhook received",
-      });
-    }
-
-    // ==========================================================
-    // GET REFERENCE
-    // ==========================================================
-
-    const reference =
-      data?.payment_reference ||
-      data?.reference;
-
-    if (!reference) {
-      console.error(
-        "❌ Transaction reference missing",
-      );
-
-      return res.status(200).json({
-        success: false,
-        message:
-          "Transaction reference missing",
-      });
-    }
 
     console.log(
       "🔥 Payment reference:",
-      reference,
+      reference
     );
+
+    // ==========================================================
+    // MISSING REFERENCE
+    // ==========================================================
+
+    if (!reference) {
+      console.error(
+        "❌ Webhook payment reference missing"
+      );
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "Payment reference missing",
+      });
+    }
 
     // ==========================================================
     // FIND ORDER
@@ -1394,11 +1498,11 @@ export const handleKoraWebhook = async (
 
     if (!order) {
       console.error(
-        "❌ Order not found:",
-        reference,
+        "❌ Webhook order not found:",
+        reference
       );
 
-      return res.status(200).json({
+      return res.status(404).json({
         success: false,
         message:
           "Order not found",
@@ -1407,57 +1511,76 @@ export const handleKoraWebhook = async (
 
     console.log(
       "✅ Webhook order found:",
-      order.orderCode,
+      order.orderCode
     );
 
     // ==========================================================
-    // PREVENT DUPLICATE PROCESSING
+    // GET PAYMENT STATUS
+    // ==========================================================
+
+    const paymentStatus =
+      String(
+        webhookData?.status ||
+        ""
+      ).toLowerCase();
+
+    const webhookAmount =
+      Number(
+        webhookData?.amount_paid ??
+        webhookData?.amount
+      );
+
+    const expectedAmount =
+      Number(
+        order.totalAmount
+      );
+
+    console.log(
+      "💰 Expected amount:",
+      expectedAmount
+    );
+
+    console.log(
+      "💰 Received amount:",
+      webhookAmount
+    );
+
+    // ==========================================================
+    // ONLY PROCESS SUCCESS
     // ==========================================================
 
     if (
-      order.paymentStatus ===
-      "paid"
+      event !== "charge.success" &&
+      paymentStatus !== "success"
     ) {
       console.log(
-        "ℹ️ Payment already processed",
+        "⏳ Webhook payment is not successful:",
+        paymentStatus
       );
 
       return res.status(200).json({
         success: true,
         message:
-          "Payment already processed",
+          "Webhook received",
       });
     }
 
     // ==========================================================
-    // CHECK PAYMENT AMOUNT
+    // CHECK AMOUNT
     // ==========================================================
 
-    const paidAmount =
-      Number(data?.amount);
-
-    console.log(
-      "💰 Expected amount:",
-      order.totalAmount,
-    );
-
-    console.log(
-      "💰 Received amount:",
-      paidAmount,
-    );
-
     if (
-      paidAmount !==
-      Number(order.totalAmount)
+      webhookAmount !==
+      expectedAmount
     ) {
       console.error(
-        "❌ Payment amount mismatch",
+        "❌ Webhook payment amount mismatch"
       );
 
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
         message:
-          "Payment amount mismatch",
+          "Payment amount does not match order",
       });
     }
 
@@ -1465,51 +1588,60 @@ export const handleKoraWebhook = async (
     // MARK ORDER AS PAID
     // ==========================================================
 
-    order.paymentStatus =
-      "paid";
+    if (
+      order.paymentStatus !==
+      "paid"
+    ) {
+      order.paymentStatus =
+        "paid";
 
-    order.paymentReference =
-      data?.payment_reference ||
-      reference;
+      order.paymentReference =
+        webhookData?.payment_reference ||
+        reference;
 
-    order.paidAt =
-      new Date();
+      order.paidAt =
+        new Date();
 
-    order.orderStatus =
-      "pending";
+      order.orderStatus =
+        "pending";
 
-    await order.save();
+      await order.save();
 
-    console.log(
-      `✅ Order ${order.orderCode} marked as PAID`,
-    );
+      console.log(
+        `✅ Order ${order.orderCode} marked as PAID`
+      );
 
-    console.log(
-      `📦 Order status: ${order.orderStatus}`,
-    );
+      console.log(
+        "📦 Order status:",
+        order.orderStatus
+      );
+    } else {
+      console.log(
+        `ℹ️ Order ${order.orderCode} is already PAID`
+      );
+    }
 
     // ==========================================================
-    // SUCCESS
+    // ACKNOWLEDGE WEBHOOK
     // ==========================================================
 
     return res.status(200).json({
       success: true,
-
       message:
-        "Payment confirmed",
+        "Webhook processed successfully",
     });
 
   } catch (error) {
     console.error(
       "❌ Kora webhook error:",
-      error,
+      error
     );
 
-    return res.status(200).json({
+    return res.status(500).json({
       success: false,
-
       message:
-        "Webhook received",
+        error.message ||
+        "Webhook processing failed",
     });
   }
 };
