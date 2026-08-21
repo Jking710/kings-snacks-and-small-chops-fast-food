@@ -4,14 +4,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import {
-  useNavigate,
-  useSearchParams,
-} from "react-router-dom";
-
-const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:5000";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 function PaymentCallback() {
   const navigate = useNavigate();
@@ -20,264 +13,133 @@ function PaymentCallback() {
   const [status, setStatus] = useState("verifying");
 
   const [message, setMessage] = useState(
-    "Verifying your payment with Kora...",
+    "Checking your payment status..."
   );
 
   useEffect(() => {
-    let redirectTimer;
+    const paymentStatus =
+      searchParams.get("payment");
 
-    const verifyPayment = async () => {
-      try {
-        console.log(
-          "🔥 PAYMENT CALLBACK LOADED",
-        );
+    const orderId =
+      searchParams.get("orderId");
 
-        console.log(
-          "🔥 Current URL:",
-          window.location.href,
-        );
+    const orderCode =
+      searchParams.get("orderCode");
 
-        // ============================================================
-        // GET PAYMENT PARAMETERS
-        // ============================================================
+    console.log("🔥 PAYMENT CALLBACK PAGE LOADED");
 
-        const reference =
-          searchParams.get("reference") ||
-          searchParams.get("trxref") ||
-          searchParams.get("payment_reference");
+    console.log(
+      "🔥 Current URL:",
+      window.location.href
+    );
 
-        const paymentStatus =
-          searchParams.get("payment");
+    console.log(
+      "🔥 Payment status:",
+      paymentStatus
+    );
 
-        const orderId =
-          searchParams.get("orderId");
+    console.log(
+      "🔥 Order ID:",
+      orderId
+    );
 
-        console.log(
-          "🔥 Payment reference:",
-          reference,
-        );
+    console.log(
+      "🔥 Order code:",
+      orderCode
+    );
 
-        console.log(
-          "🔥 Payment status:",
-          paymentStatus,
-        );
+    // ==========================================================
+    // SUCCESS
+    // ==========================================================
 
-        console.log(
-          "🔥 Order ID:",
-          orderId,
-        );
+    if (paymentStatus === "success") {
+      console.log(
+        "✅ Payment was successfully confirmed"
+      );
 
-        // ============================================================
-        // CASE 1
-        // PAYMENT ALREADY SUCCESSFUL
-        //
-        // Your current redirect URL appears as:
-        //
-        // /order-history?payment=success&orderId=...
-        //
-        // In this situation there is no reference available here.
-        // The Kora webhook handles payment confirmation on the backend.
-        // ============================================================
+      setStatus("success");
 
-        if (
-          paymentStatus === "success" &&
-          orderId
-        ) {
-          console.log(
-            "✅ Payment success detected from redirect",
-          );
+      setMessage(
+        orderCode
+          ? `Order ${orderCode} has been confirmed. Redirecting to your orders...`
+          : "Your payment was successful. Redirecting to your orders..."
+      );
 
-          setStatus("success");
+      const timer = setTimeout(() => {
+        navigate("/order-history", {
+          replace: true,
+        });
+      }, 1500);
 
-          setMessage(
-            "Payment successful. Redirecting to your orders...",
-          );
+      return () => clearTimeout(timer);
+    }
 
-          redirectTimer = setTimeout(() => {
-            console.log(
-              "🚀 Redirecting to order history",
-            );
+    // ==========================================================
+    // PENDING
+    // ==========================================================
 
-            navigate(
-              `/order-history?payment=success&orderId=${encodeURIComponent(
-                orderId,
-              )}`,
-              {
-                replace: true,
-              },
-            );
-          }, 1500);
+    if (paymentStatus === "pending") {
+      console.log(
+        "⏳ Payment is still pending"
+      );
 
-          return;
-        }
+      setStatus("verifying");
 
-        // ============================================================
-        // CASE 2
-        // PAYMENT REFERENCE EXISTS
-        //
-        // Verify the transaction with the backend.
-        // ============================================================
+      setMessage(
+        "Your payment is still being confirmed. Redirecting to your orders..."
+      );
 
-        if (reference) {
-          console.log(
-            "🔎 Verifying payment using reference",
-          );
+      const timer = setTimeout(() => {
+        navigate("/order-history", {
+          replace: true,
+        });
+      }, 2000);
 
-          const response = await fetch(
-            `${API_BASE}/api/payments/kora/verify/${encodeURIComponent(
-              reference,
-            )}`,
-            {
-              method: "GET",
-              credentials: "include",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            },
-          );
+      return () => clearTimeout(timer);
+    }
 
-          console.log(
-            "🔥 Verification HTTP status:",
-            response.status,
-          );
+    // ==========================================================
+    // FAILED
+    // ==========================================================
 
-          let data = {};
+    if (paymentStatus === "failed") {
+      console.error(
+        "❌ Payment failed"
+      );
 
-          try {
-            data = await response.json();
-          } catch (error) {
-            console.error(
-              "❌ Unable to parse verification response:",
-              error,
-            );
-          }
+      setStatus("failed");
 
-          console.log(
-            "🔥 Payment verification response:",
-            data,
-          );
+      setMessage(
+        "Your payment could not be confirmed. Please check your order history."
+      );
 
-          // ==========================================================
-          // PAYMENT VERIFIED
-          // ==========================================================
+      return;
+    }
 
-          if (
-            response.ok &&
-            data.success &&
-            data.paid
-          ) {
-            setStatus("success");
+    // ==========================================================
+    // UNKNOWN CALLBACK
+    // ==========================================================
 
-            setMessage(
-              "Payment successful. Redirecting to your orders...",
-            );
+    console.error(
+      "❌ Unknown payment callback parameters"
+    );
 
-            const verifiedOrderId =
-              data.orderId || orderId;
+    setStatus("failed");
 
-            redirectTimer = setTimeout(() => {
-              console.log(
-                "🚀 Redirecting to order history",
-              );
-
-              if (verifiedOrderId) {
-                navigate(
-                  `/order-history?payment=success&orderId=${encodeURIComponent(
-                    verifiedOrderId,
-                  )}`,
-                  {
-                    replace: true,
-                  },
-                );
-              } else {
-                navigate(
-                  "/order-history?payment=success",
-                  {
-                    replace: true,
-                  },
-                );
-              }
-            }, 1500);
-
-            return;
-          }
-
-          // ==========================================================
-          // PAYMENT NOT YET CONFIRMED
-          // ==========================================================
-
-          setStatus("failed");
-
-          setMessage(
-            data.message ||
-              "Your payment could not be confirmed yet. Please check your order history.",
-          );
-
-          return;
-        }
-
-        // ============================================================
-        // CASE 3
-        // NO REFERENCE AND NO SUCCESS PARAMETERS
-        // ============================================================
-
-        console.error(
-          "❌ No payment reference or successful payment parameters found",
-        );
-
-        setStatus("failed");
-
-        setMessage(
-          "Payment information was not found. Please check your order history.",
-        );
-      } catch (error) {
-        console.error(
-          "❌ Payment callback error:",
-          error,
-        );
-
-        setStatus("failed");
-
-        setMessage(
-          "Unable to verify your payment. Please check your order history.",
-        );
-      }
-    };
-
-    verifyPayment();
-
-    // ============================================================
-    // CLEANUP
-    // ============================================================
-
-    return () => {
-      if (redirectTimer) {
-        clearTimeout(redirectTimer);
-      }
-    };
+    setMessage(
+      "We could not determine the payment status. Please check your order history."
+    );
   }, [navigate, searchParams]);
 
-  // ==============================================================
-  // GO TO ORDER HISTORY
-  // ==============================================================
-
-  const goToOrderHistory = () => {
-    navigate("/order-history", {
-      replace: true,
-    });
-  };
-
-  // ==============================================================
-  // UI
-  // ==============================================================
+  // ==========================================================
+  // PAGE
+  // ==========================================================
 
   return (
     <div className="min-h-screen bg-[#faf9f6] flex items-center justify-center px-4">
       <div className="bg-white rounded-3xl shadow-xl border border-[#e8ddd5] p-8 max-w-md w-full text-center">
 
-        {/* ========================================================
-            VERIFYING
-        ======================================================== */}
+        {/* VERIFYING */}
 
         {status === "verifying" && (
           <>
@@ -286,7 +148,7 @@ function PaymentCallback() {
             </div>
 
             <h1 className="text-2xl font-bold text-[#3b2418] font-['Georgia']">
-              Verifying Payment
+              Processing Payment
             </h1>
 
             <p className="text-gray-500 mt-3">
@@ -295,9 +157,7 @@ function PaymentCallback() {
           </>
         )}
 
-        {/* ========================================================
-            SUCCESS
-        ======================================================== */}
+        {/* SUCCESS */}
 
         {status === "success" && (
           <>
@@ -315,9 +175,7 @@ function PaymentCallback() {
           </>
         )}
 
-        {/* ========================================================
-            FAILED
-        ======================================================== */}
+        {/* FAILED */}
 
         {status === "failed" && (
           <>
@@ -334,8 +192,12 @@ function PaymentCallback() {
             </p>
 
             <button
-              onClick={goToOrderHistory}
-              className="mt-6 bg-[#5a3825] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#43291c] transition"
+              onClick={() =>
+                navigate("/order-history", {
+                  replace: true,
+                })
+              }
+              className="mt-6 bg-[#5a3825] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#45291b] transition"
             >
               Go to Order History
             </button>
