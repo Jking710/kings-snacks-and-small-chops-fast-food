@@ -12,9 +12,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
-const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  "https://kings-snacks-and-small-chops-fast-food-4.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function OrderHistory() {
   const [orders, setOrders] = useState([]);
