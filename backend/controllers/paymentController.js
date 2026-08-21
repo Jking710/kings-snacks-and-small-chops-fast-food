@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import mongoose from "mongoose";
-import Order from "../models/order.js";
+import Order from "../models/Order.js";
 // ============================================================
 // KORA API
 // ============================================================
@@ -10,6 +10,7 @@ const KORA_API_URL = "https://api.korapay.com/merchant/api/v1";
 // ============================================================
 // PRODUCTION URLS
 // ============================================================
+
 
 const FRONTEND_URL =
   process.env.FRONTEND_URL ||
