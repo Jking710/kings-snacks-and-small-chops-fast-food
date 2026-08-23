@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -31,15 +31,14 @@ function TrackOrder() {
   // LOAD ORDER
   // ============================================================
 
-  useEffect(() => {
-    loadOrder();
-    detectLocation();
-  }, [id]);
-
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
+
+      if (!id) {
+        throw new Error("Order ID is missing.");
+      }
 
       // ----------------------------------------------------------
       // GET JWT TOKEN
@@ -126,13 +125,13 @@ function TrackOrder() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   // ============================================================
   // DETECT USER LOCATION
   // ============================================================
 
-  const detectLocation = () => {
+  const detectLocation = useCallback(() => {
     setLocationLoading(true);
     setLocationError("");
 
@@ -187,7 +186,12 @@ function TrackOrder() {
         maximumAge: 0,
       }
     );
-  };
+  }, []);
+
+  useEffect(() => {
+    loadOrder();
+    detectLocation();
+  }, [detectLocation, loadOrder]);
 
   // ============================================================
   // FORMAT DATE

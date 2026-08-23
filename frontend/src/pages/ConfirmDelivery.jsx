@@ -1,14 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  CheckCircle,
-  XCircle,
-  PackageCheck,
-  Loader2,
-} from "lucide-react";
+import { CheckCircle, XCircle, PackageCheck, Loader2 } from "lucide-react";
 
-const API_BASE =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function ConfirmDelivery() {
   const { id } = useParams();
@@ -22,6 +16,8 @@ function ConfirmDelivery() {
       setLoading(true);
       setError("");
 
+      const token = localStorage.getItem("kc_token");
+
       const response = await fetch(
         `${API_BASE}/api/orders/${id}/confirm-delivery`,
         {
@@ -29,19 +25,18 @@ function ConfirmDelivery() {
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             delivered: delivered,
           }),
-        }
+        },
       );
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Failed to update delivery status"
-        );
+        throw new Error(data.message || "Failed to update delivery status");
       }
 
       // Return to Order History after successful confirmation
@@ -49,9 +44,7 @@ function ConfirmDelivery() {
     } catch (error) {
       console.error("Confirm delivery error:", error);
 
-      setError(
-        error.message || "Unable to update delivery status"
-      );
+      setError(error.message || "Unable to update delivery status");
     } finally {
       setLoading(false);
     }
@@ -61,13 +54,9 @@ function ConfirmDelivery() {
     <div className="min-h-screen bg-orange-50 px-4 py-16 flex items-center justify-center">
       <div className="w-full max-w-xl">
         <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-7 sm:p-10 text-center">
-
           {/* Icon */}
           <div className="w-20 h-20 mx-auto rounded-full bg-orange-100 flex items-center justify-center mb-6">
-            <PackageCheck
-              size={40}
-              className="text-orange-600"
-            />
+            <PackageCheck size={40} className="text-orange-600" />
           </div>
 
           {/* Heading */}
@@ -80,9 +69,8 @@ function ConfirmDelivery() {
           </h1>
 
           <p className="text-gray-500 leading-relaxed mb-8">
-            Please confirm whether you received your
-            order. Your response will update the order
-            status in your Order History.
+            Please confirm whether you received your order. Your response will
+            update the order status in your Order History.
           </p>
 
           {/* Error */}
@@ -94,7 +82,6 @@ function ConfirmDelivery() {
 
           {/* Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
             {/* YES */}
             <button
               type="button"
@@ -103,14 +90,10 @@ function ConfirmDelivery() {
               className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <Loader2
-                  size={20}
-                  className="animate-spin"
-                />
+                <Loader2 size={20} className="animate-spin" />
               ) : (
                 <CheckCircle size={20} />
               )}
-
               Yes, Delivered
             </button>
 
@@ -122,14 +105,10 @@ function ConfirmDelivery() {
               className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <Loader2
-                  size={20}
-                  className="animate-spin"
-                />
+                <Loader2 size={20} className="animate-spin" />
               ) : (
                 <XCircle size={20} />
               )}
-
               No, Not Delivered
             </button>
           </div>
@@ -143,7 +122,6 @@ function ConfirmDelivery() {
           >
             Go back to Order History
           </button>
-
         </div>
       </div>
     </div>
