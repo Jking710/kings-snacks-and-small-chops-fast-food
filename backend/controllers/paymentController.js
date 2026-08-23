@@ -10,7 +10,7 @@ const KORA_API_URL =
   "https://api.korapay.com/merchant/api/v1";
 
 // ============================================================
-// URL CONFIGURATION
+// APPLICATION URLS
 // ============================================================
 
 const FRONTEND_URL =
@@ -23,30 +23,13 @@ const BACKEND_URL =
   "https://kings-snacks-and-small-chops-fast-food-4.onrender.com";
 
 // ============================================================
-// CLEAN URL
+// HELPER: FRONTEND REDIRECT
 // ============================================================
 
-const cleanUrl = (url) => {
-  return String(url || "")
-    .trim()
-    .replace(/^["']|["']$/g, "")
-    .replace(/\/+$/, "");
-};
-
-// ============================================================
-// FINAL FRONTEND URL
-// ============================================================
-
-const FRONTEND_BASE_URL = cleanUrl(FRONTEND_URL);
-const BACKEND_BASE_URL = cleanUrl(BACKEND_URL);
-
-// ============================================================
-// CREATE FRONTEND REDIRECT URL
-// ============================================================
-
-const createFrontendUrl = (params = {}) => {
+const redirectToFrontend = (res, params = {}) => {
   const url = new URL(
-    `${FRONTEND_BASE_URL}/order-history`
+    "/order-history",
+    FRONTEND_URL
   );
 
   Object.entries(params).forEach(([key, value]) => {
@@ -59,81 +42,22 @@ const createFrontendUrl = (params = {}) => {
     }
   });
 
-  return url.toString();
+  const redirectUrl = url.toString();
+
+  console.log("🚀 REDIRECTING CUSTOMER TO:");
+  console.log(redirectUrl);
+
+  return res.redirect(302, redirectUrl);
 };
 
 // ============================================================
-// SEND FRONTEND REDIRECT
-// ============================================================
-//
-// We do not use res.redirect() here.
-//
-// Render + Kora callback can sometimes produce
-// ERR_INVALID_REDIRECT when Express sends the redirect
-// response directly.
-//
-// Instead, we return a normal HTML response.
-// The browser then moves to the Vercel page.
-//
-// ============================================================
-
-const sendFrontendRedirect = (res, destination) => {
-  const safeDestination = String(destination)
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  console.log("🚀 FRONTEND DESTINATION:");
-  console.log(destination);
-
-  res.status(200);
-
-  res.setHeader(
-    "Content-Type",
-    "text/html; charset=utf-8"
-  );
-
-  res.setHeader(
-    "Cache-Control",
-    "no-store, no-cache, must-revalidate"
-  );
-
-  return res.end(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-  <meta
-    http-equiv="refresh"
-    content="0;url=${safeDestination}"
-  />
-  <title>Payment Complete</title>
-</head>
-<body>
-  <p>Payment processed successfully.</p>
-
-  <script>
-    window.location.replace(${JSON.stringify(destination)});
-  </script>
-</body>
-</html>
-  `);
-};
-
-// ============================================================
-// GENERATE UNIQUE ORDER CODE
+// HELPER: GENERATE ORDER CODE
 // ============================================================
 
 const generateOrderCode = () => {
   const date = new Date();
 
   const year = date.getFullYear();
-
   const month = String(
     date.getMonth() + 1
   ).padStart(2, "0");
@@ -151,10 +75,31 @@ const generateOrderCode = () => {
 };
 
 // ============================================================
+// HELPER: GET KORA SECRET
+// ============================================================
+
+const getKoraSecretKey = () => {
+  const secret = process.env.KORA_SECRET_KEY;
+
+  if (!secret) {
+    console.error(
+      "❌ KORA_SECRET_KEY is missing"
+    );
+
+    return null;
+  }
+
+  return secret.trim();
+};
+
+// ============================================================
 // INITIALIZE KORA PAYMENT
 // ============================================================
 
-export const initializeKoraPayment = async (req, res) => {
+export const initializeKoraPayment = async (
+  req,
+  res
+) => {
   try {
     console.log(
       "🔥 KORA INITIALIZE CONTROLLER HIT"
@@ -170,20 +115,14 @@ export const initializeKoraPayment = async (req, res) => {
       req.body
     );
 
-    const {
-      items,
-      subtotal,
-      deliveryFee,
-      totalAmount,
-      deliveryAddress,
-      phone,
-    } = req.body;
-
-    // ==========================================================
+    // ========================================================
     // AUTHENTICATION
-    // ==========================================================
+    // ========================================================
 
-    if (!req.user || !req.user._id) {
+    if (
+      !req.user ||
+      !req.user._id
+    ) {
       console.error(
         "❌ User authentication missing"
       );
@@ -195,9 +134,22 @@ export const initializeKoraPayment = async (req, res) => {
       });
     }
 
-    // ==========================================================
-    // VALIDATION
-    // ==========================================================
+    // ========================================================
+    // GET REQUEST DATA
+    // ========================================================
+
+    const {
+      items,
+      subtotal,
+      deliveryFee,
+      totalAmount,
+      deliveryAddress,
+      phone,
+    } = req.body;
+
+    // ========================================================
+    // VALIDATE ITEMS
+    // ========================================================
 
     if (
       !Array.isArray(items) ||
@@ -208,6 +160,10 @@ export const initializeKoraPayment = async (req, res) => {
         message: "Your cart is empty",
       });
     }
+
+    // ========================================================
+    // VALIDATE ADDRESS
+    // ========================================================
 
     if (
       !deliveryAddress ||
@@ -221,6 +177,10 @@ export const initializeKoraPayment = async (req, res) => {
       });
     }
 
+    // ========================================================
+    // VALIDATE PHONE
+    // ========================================================
+
     if (
       !phone ||
       typeof phone !== "string" ||
@@ -232,6 +192,10 @@ export const initializeKoraPayment = async (req, res) => {
           "Phone number is required",
       });
     }
+
+    // ========================================================
+    // VALIDATE AMOUNTS
+    // ========================================================
 
     if (
       typeof subtotal !== "number" ||
@@ -257,15 +221,14 @@ export const initializeKoraPayment = async (req, res) => {
       "✅ Order validation passed"
     );
 
-    // ==========================================================
-    // KORA SECRET KEY
-    // ==========================================================
+    // ========================================================
+    // KORA SECRET
+    // ========================================================
 
-    if (!process.env.KORA_SECRET_KEY) {
-      console.error(
-        "❌ KORA_SECRET_KEY is missing"
-      );
+    const secretKey =
+      getKoraSecretKey();
 
+    if (!secretKey) {
       return res.status(500).json({
         success: false,
         message:
@@ -277,44 +240,46 @@ export const initializeKoraPayment = async (req, res) => {
       "✅ Kora secret key found"
     );
 
-    // ==========================================================
+    // ========================================================
     // CONVERT CART ITEMS
-    // ==========================================================
+    // ========================================================
 
-    const orderItems = items.map((item) => {
-      const productId =
-        new mongoose.Types.ObjectId();
+    const orderItems = items.map(
+      (item) => {
+        const productId =
+          new mongoose.Types.ObjectId();
 
-      return {
-        productId,
+        return {
+          productId,
 
-        name: String(
-          item.name || ""
-        ).trim(),
+          name: String(
+            item.name || ""
+          ).trim(),
 
-        price: Number(
-          item.price
-        ),
+          price: Number(
+            item.price
+          ),
 
-        quantity: Number(
-          item.quantity
-        ),
+          quantity: Number(
+            item.quantity
+          ),
 
-        image:
-          item.img ||
-          item.image ||
-          "",
-      };
-    });
+          image:
+            item.img ||
+            item.image ||
+            "",
+        };
+      }
+    );
 
     console.log(
       "📦 Converted order items:",
       orderItems
     );
 
-    // ==========================================================
+    // ========================================================
     // GENERATE REFERENCES
-    // ==========================================================
+    // ========================================================
 
     const reference =
       `KS-${Date.now()}-${crypto
@@ -335,45 +300,45 @@ export const initializeKoraPayment = async (req, res) => {
       orderCode
     );
 
-    // ==========================================================
+    // ========================================================
     // CREATE ORDER
-    // ==========================================================
+    // ========================================================
 
     console.log(
       "🔥 Creating order in MongoDB..."
     );
 
-    const order = await Order.create({
-      user: req.user._id,
+    const order =
+      await Order.create({
+        user: req.user._id,
 
-      orderCode,
+        orderCode,
 
-      items: orderItems,
+        items: orderItems,
 
-      subtotal,
+        subtotal,
 
-      deliveryFee,
+        deliveryFee,
 
-      totalAmount,
+        totalAmount,
 
-      deliveryAddress:
-        deliveryAddress.trim(),
+        deliveryAddress:
+          deliveryAddress.trim(),
 
-      phone:
-        phone.trim(),
+        phone: phone.trim(),
 
-      paymentMethod:
-        "korapay",
+        paymentMethod:
+          "korapay",
 
-      paymentStatus:
-        "pending",
+        paymentStatus:
+          "pending",
 
-      orderStatus:
-        "pending",
+        orderStatus:
+          "pending",
 
-      transactionReference:
-        reference,
-    });
+        transactionReference:
+          reference,
+      });
 
     console.log(
       "✅ Order created:",
@@ -385,24 +350,24 @@ export const initializeKoraPayment = async (req, res) => {
       order.orderCode
     );
 
-    // ==========================================================
-    // KORA CALLBACK URL
-    // ==========================================================
+    // ========================================================
+    // KORA URLS
+    // ========================================================
 
     const redirectUrl =
-      `${BACKEND_BASE_URL}/api/payments/kora/callback`;
+      `${BACKEND_URL}/api/payments/kora/callback`;
 
     const notificationUrl =
-      `${BACKEND_BASE_URL}/api/payments/kora/webhook`;
+      `${BACKEND_URL}/api/payments/kora/webhook`;
 
     console.log(
       "🌐 Frontend URL:",
-      FRONTEND_BASE_URL
+      FRONTEND_URL
     );
 
     console.log(
       "🌐 Backend URL:",
-      BACKEND_BASE_URL
+      BACKEND_URL
     );
 
     console.log(
@@ -415,9 +380,14 @@ export const initializeKoraPayment = async (req, res) => {
       notificationUrl
     );
 
-    // ==========================================================
+    // ========================================================
     // KORA PAYLOAD
-    // ==========================================================
+    // ========================================================
+
+    const customerName =
+      `${req.user.firstName || ""} ${
+        req.user.lastName || ""
+      }`.trim();
 
     const koraPayload = {
       amount: totalAmount,
@@ -447,9 +417,8 @@ export const initializeKoraPayment = async (req, res) => {
 
       customer: {
         name:
-          `${req.user.firstName || ""} ${
-            req.user.lastName || ""
-          }`.trim(),
+          customerName ||
+          "Kings Snacks Customer",
 
         email:
           req.user.email,
@@ -467,9 +436,9 @@ export const initializeKoraPayment = async (req, res) => {
       "📤 Sending payment request to Kora..."
     );
 
-    // ==========================================================
-    // CALL KORA
-    // ==========================================================
+    // ========================================================
+    // SEND TO KORA
+    // ========================================================
 
     const response =
       await fetch(
@@ -479,7 +448,7 @@ export const initializeKoraPayment = async (req, res) => {
 
           headers: {
             Authorization:
-              `Bearer ${process.env.KORA_SECRET_KEY}`,
+              `Bearer ${secretKey}`,
 
             "Content-Type":
               "application/json",
@@ -497,9 +466,9 @@ export const initializeKoraPayment = async (req, res) => {
       response.status
     );
 
-    // ==========================================================
-    // READ RESPONSE
-    // ==========================================================
+    // ========================================================
+    // READ KORA RESPONSE
+    // ========================================================
 
     const responseText =
       await response.text();
@@ -538,9 +507,9 @@ export const initializeKoraPayment = async (req, res) => {
       data
     );
 
-    // ==========================================================
-    // KORA ERROR
-    // ==========================================================
+    // ========================================================
+    // KORA INITIALIZATION ERROR
+    // ========================================================
 
     if (
       !response.ok ||
@@ -565,9 +534,9 @@ export const initializeKoraPayment = async (req, res) => {
       });
     }
 
-    // ==========================================================
+    // ========================================================
     // CHECK CHECKOUT URL
-    // ==========================================================
+    // ========================================================
 
     const checkoutUrl =
       data?.data?.checkout_url;
@@ -589,9 +558,9 @@ export const initializeKoraPayment = async (req, res) => {
       });
     }
 
-    // ==========================================================
+    // ========================================================
     // SUCCESS
-    // ==========================================================
+    // ========================================================
 
     console.log(
       "✅ Kora payment initialized successfully"
@@ -618,7 +587,6 @@ export const initializeKoraPayment = async (req, res) => {
 
       checkoutUrl,
     });
-
   } catch (error) {
     console.error(
       "🔥 Kora payment initialization error:"
@@ -640,152 +608,265 @@ export const initializeKoraPayment = async (req, res) => {
 // VERIFY KORA PAYMENT
 // ============================================================
 
-export const verifyKoraPayment = async (
-  req,
-  res
-) => {
-  try {
-    const {
-      reference,
-    } = req.params;
+export const verifyKoraPayment =
+  async (req, res) => {
+    try {
+      const {
+        reference,
+      } = req.params;
 
-    console.log(
-      "🔥 VERIFY KORA PAYMENT"
-    );
+      console.log(
+        "🔥 VERIFY KORA PAYMENT"
+      );
 
-    console.log(
-      "🔥 Reference:",
-      reference
-    );
-
-    if (!reference) {
-      return res.status(400).json({
-        success: false,
-        paid: false,
-        message:
-          "Payment reference is required",
-      });
-    }
-
-    if (!process.env.KORA_SECRET_KEY) {
-      return res.status(500).json({
-        success: false,
-        paid: false,
-        message:
-          "Kora payment configuration is missing",
-      });
-    }
-
-    const order =
-      await Order.findOne({
-        transactionReference:
-          reference,
-      });
-
-    if (!order) {
-      console.error(
-        "❌ Order not found:",
+      console.log(
+        "🔥 Reference:",
         reference
       );
 
-      return res.status(404).json({
-        success: false,
-        paid: false,
-        message:
-          "Order not found",
-      });
-    }
+      // ======================================================
+      // VALIDATE REFERENCE
+      // ======================================================
 
-    console.log(
-      "✅ Order found:",
-      order.orderCode
-    );
+      if (!reference) {
+        return res.status(400).json({
+          success: false,
+          paid: false,
+          message:
+            "Payment reference is required",
+        });
+      }
 
-    const response =
-      await fetch(
-        `${KORA_API_URL}/charges/${encodeURIComponent(
+      // ======================================================
+      // SECRET
+      // ======================================================
+
+      const secretKey =
+        getKoraSecretKey();
+
+      if (!secretKey) {
+        return res.status(500).json({
+          success: false,
+          paid: false,
+          message:
+            "Kora payment configuration is missing",
+        });
+      }
+
+      // ======================================================
+      // FIND ORDER
+      // ======================================================
+
+      const order =
+        await Order.findOne({
+          transactionReference:
+            reference,
+        });
+
+      if (!order) {
+        console.error(
+          "❌ Order not found:",
           reference
-        )}`,
-        {
-          method: "GET",
+        );
 
-          headers: {
-            Authorization:
-              `Bearer ${process.env.KORA_SECRET_KEY}`,
+        return res.status(404).json({
+          success: false,
+          paid: false,
+          message:
+            "Order not found",
+        });
+      }
 
-            "Content-Type":
-              "application/json",
-          },
-        }
+      console.log(
+        "✅ Order found:",
+        order.orderCode
       );
 
-    const responseText =
-      await response.text();
+      // ======================================================
+      // ASK KORA FOR PAYMENT STATUS
+      // ======================================================
 
-    console.log(
-      "🔥 Kora verification status:",
-      response.status
-    );
+      const response =
+        await fetch(
+          `${KORA_API_URL}/charges/${encodeURIComponent(
+            reference
+          )}`,
+          {
+            method: "GET",
 
-    console.log(
-      "🔥 Kora verification response:",
-      responseText
-    );
+            headers: {
+              Authorization:
+                `Bearer ${secretKey}`,
 
-    let data;
-
-    try {
-      data =
-        JSON.parse(
-          responseText
+              "Content-Type":
+                "application/json",
+            },
+          }
         );
-    } catch (error) {
-      return res.status(502).json({
-        success: false,
-        paid: false,
-        message:
-          "Invalid response from Kora",
-      });
-    }
 
-    if (
-      !response.ok ||
-      !data.status
-    ) {
-      return res.status(400).json({
-        success: false,
-        paid: false,
-        message:
-          data.message ||
-          "Unable to verify payment with Kora",
-      });
-    }
+      const responseText =
+        await response.text();
 
-    const payment =
-      data.data;
+      console.log(
+        "🔥 Kora verification status:",
+        response.status
+      );
 
-    console.log(
-      "🔥 Kora payment status:",
-      payment?.status
-    );
+      console.log(
+        "🔥 Kora verification response:",
+        responseText
+      );
 
-    const normalizedStatus =
-      String(
-        payment?.status || ""
-      ).toLowerCase();
+      let data;
 
-    if (
-      normalizedStatus !==
-      "success"
-    ) {
+      try {
+        data =
+          JSON.parse(
+            responseText
+          );
+      } catch (error) {
+        return res.status(502).json({
+          success: false,
+          paid: false,
+          message:
+            "Invalid response from Kora",
+        });
+      }
+
+      if (
+        !response.ok ||
+        !data.status
+      ) {
+        return res.status(400).json({
+          success: false,
+          paid: false,
+
+          message:
+            data.message ||
+            "Unable to verify payment with Kora",
+        });
+      }
+
+      const payment =
+        data.data;
+
+      const normalizedStatus =
+        String(
+          payment?.status || ""
+        ).toLowerCase();
+
+      console.log(
+        "🔥 Kora payment status:",
+        payment?.status
+      );
+
+      // ======================================================
+      // PAYMENT NOT SUCCESSFUL
+      // ======================================================
+
+      if (
+        normalizedStatus !==
+        "success"
+      ) {
+        return res.status(200).json({
+          success: false,
+
+          paid: false,
+
+          status:
+            payment?.status ||
+            "pending",
+
+          orderId:
+            order._id,
+
+          orderCode:
+            order.orderCode,
+
+          message:
+            "Payment has not been confirmed",
+        });
+      }
+
+      // ======================================================
+      // CHECK AMOUNT
+      // ======================================================
+
+      const paidAmount =
+        Number(
+          payment?.amount_paid ??
+          payment?.amount
+        );
+
+      const expectedAmount =
+        Number(
+          order.totalAmount
+        );
+
+      console.log(
+        "💰 Paid amount:",
+        paidAmount
+      );
+
+      console.log(
+        "💰 Expected amount:",
+        expectedAmount
+      );
+
+      if (
+        paidAmount !==
+        expectedAmount
+      ) {
+        console.error(
+          "❌ Payment amount mismatch"
+        );
+
+        return res.status(400).json({
+          success: false,
+          paid: false,
+          message:
+            "Payment amount does not match the order",
+        });
+      }
+
+      // ======================================================
+      // MARK ORDER AS PAID
+      // ======================================================
+
+      if (
+        order.paymentStatus !==
+        "paid"
+      ) {
+        order.paymentStatus =
+          "paid";
+
+        order.paymentReference =
+          payment?.payment_reference ||
+          reference;
+
+        order.paidAt =
+          new Date();
+
+        order.orderStatus =
+          "pending";
+
+        await order.save();
+
+        console.log(
+          `✅ Order ${order.orderCode} marked as PAID`
+        );
+      }
+
+      // ======================================================
+      // RESPONSE
+      // ======================================================
+
       return res.status(200).json({
-        success: false,
+        success: true,
 
-        paid: false,
+        paid: true,
 
-        status:
-          payment?.status ||
-          "pending",
+        status: "success",
 
         orderId:
           order._id,
@@ -794,49 +875,818 @@ export const verifyKoraPayment = async (
           order.orderCode,
 
         message:
-          "Payment has not been confirmed",
+          "Payment verified successfully",
       });
-    }
-
-    // ==========================================================
-    // CHECK PAYMENT AMOUNT
-    // ==========================================================
-
-    const paidAmount =
-      Number(
-        payment?.amount_paid ??
-        payment?.amount
-      );
-
-    const expectedAmount =
-      Number(
-        order.totalAmount
-      );
-
-    if (
-      paidAmount !==
-      expectedAmount
-    ) {
+    } catch (error) {
       console.error(
-        "❌ Payment amount mismatch"
+        "❌ Kora verification error:",
+        error
       );
 
-      return res.status(400).json({
+      return res.status(500).json({
         success: false,
+
         paid: false,
+
         message:
-          "Payment amount does not match the order",
+          error.message ||
+          "Payment verification failed",
       });
     }
+  };
 
-    // ==========================================================
-    // MARK ORDER AS PAID
-    // ==========================================================
+// ============================================================
+// KORA WEBHOOK
+// ============================================================
+//
+// Kora signs ONLY req.body.data.
+// It does NOT sign the complete request body.
+//
+// Signature:
+// HMAC SHA256(JSON.stringify(req.body.data), KORA_SECRET_KEY)
+//
+// Kora documentation:
+// x-korapay-signature
+//
+// ============================================================
 
-    if (
-      order.paymentStatus !==
-      "paid"
-    ) {
+export const handleKoraWebhook =
+  async (req, res) => {
+    try {
+      console.log(
+        "🔥 KORA WEBHOOK RECEIVED"
+      );
+
+      console.log(
+        "🔥 Webhook event:",
+        req.body?.event
+      );
+
+      console.log(
+        "🔥 Webhook body:",
+        req.body
+      );
+
+      // ======================================================
+      // SECRET
+      // ======================================================
+
+      const secretKey =
+        getKoraSecretKey();
+
+      if (!secretKey) {
+        console.error(
+          "❌ KORA_SECRET_KEY is missing"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      // ======================================================
+      // GET SIGNATURE
+      // ======================================================
+
+      const receivedSignature =
+        req.headers[
+          "x-korapay-signature"
+        ];
+
+      if (!receivedSignature) {
+        console.error(
+          "❌ Kora webhook signature missing"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      // ======================================================
+      // CHECK DATA
+      // ======================================================
+
+      if (
+        !req.body ||
+        !req.body.data
+      ) {
+        console.error(
+          "❌ Kora webhook data missing"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      // ======================================================
+      // GENERATE EXPECTED SIGNATURE
+      // ======================================================
+      //
+      // IMPORTANT:
+      // Kora signs ONLY req.body.data.
+      //
+      // Do not use JSON.stringify(req.body)
+      //
+      // ======================================================
+
+      const dataString =
+        JSON.stringify(
+          req.body.data
+        );
+
+      const expectedSignature =
+        crypto
+          .createHmac(
+            "sha256",
+            secretKey
+          )
+          .update(
+            dataString
+          )
+          .digest("hex");
+
+      console.log(
+        "🔥 Received signature:",
+        receivedSignature
+      );
+
+      console.log(
+        "🔥 Expected signature:",
+        expectedSignature
+      );
+
+      // ======================================================
+      // SAFE SIGNATURE COMPARISON
+      // ======================================================
+
+      const receivedBuffer =
+        Buffer.from(
+          String(
+            receivedSignature
+          ).trim(),
+          "utf8"
+        );
+
+      const expectedBuffer =
+        Buffer.from(
+          expectedSignature,
+          "utf8"
+        );
+
+      if (
+        receivedBuffer.length !==
+        expectedBuffer.length
+      ) {
+        console.error(
+          "❌ Invalid Kora webhook signature"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      const signatureValid =
+        crypto.timingSafeEqual(
+          receivedBuffer,
+          expectedBuffer
+        );
+
+      if (!signatureValid) {
+        console.error(
+          "❌ Invalid Kora webhook signature"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      console.log(
+        "✅ Kora webhook signature verified"
+      );
+
+      // ======================================================
+      // EVENT
+      // ======================================================
+
+      const event =
+        req.body.event;
+
+      console.log(
+        "🔥 Kora webhook event:",
+        event
+      );
+
+      // ======================================================
+      // IGNORE UNKNOWN EVENTS
+      // ======================================================
+
+      if (
+        event !==
+          "charge.success" &&
+        event !==
+          "charge.failed"
+      ) {
+        console.log(
+          "ℹ️ Unsupported Kora event:",
+          event
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      // ======================================================
+      // PAYMENT DATA
+      // ======================================================
+
+      const payment =
+        req.body.data;
+
+      const reference =
+        payment?.reference ||
+        payment?.payment_reference;
+
+      console.log(
+        "🔥 Payment reference:",
+        reference
+      );
+
+      if (!reference) {
+        console.error(
+          "❌ Payment reference missing"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      // ======================================================
+      // FIND ORDER
+      // ======================================================
+
+      const order =
+        await Order.findOne({
+          transactionReference:
+            reference,
+        });
+
+      if (!order) {
+        console.error(
+          "❌ Webhook order not found:",
+          reference
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      console.log(
+        "✅ Webhook order found:",
+        order.orderCode
+      );
+
+      // ======================================================
+      // FAILED PAYMENT
+      // ======================================================
+
+      if (
+        event ===
+          "charge.failed" ||
+        String(
+          payment?.status || ""
+        ).toLowerCase() ===
+          "failed"
+      ) {
+        order.paymentStatus =
+          "failed";
+
+        order.orderStatus =
+          "failed";
+
+        await order.save();
+
+        console.log(
+          `❌ Order ${order.orderCode} marked as FAILED`
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: true,
+        });
+      }
+
+      // ======================================================
+      // SUCCESS STATUS
+      // ======================================================
+
+      const paymentStatus =
+        String(
+          payment?.status || ""
+        ).toLowerCase();
+
+      if (
+        event !==
+          "charge.success" ||
+        paymentStatus !==
+          "success"
+      ) {
+        console.log(
+          "⏳ Webhook payment is not successful"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      // ======================================================
+      // CHECK PAYMENT AMOUNT
+      // ======================================================
+
+      const expectedAmount =
+        Number(
+          order.totalAmount
+        );
+
+      const receivedAmount =
+        Number(
+          payment?.amount
+        );
+
+      console.log(
+        "💰 Expected amount:",
+        expectedAmount
+      );
+
+      console.log(
+        "💰 Received amount:",
+        receivedAmount
+      );
+
+      if (
+        !Number.isFinite(
+          receivedAmount
+        ) ||
+        receivedAmount !==
+          expectedAmount
+      ) {
+        console.error(
+          "❌ Webhook payment amount mismatch"
+        );
+
+        return res.status(200).json({
+          received: true,
+          processed: false,
+        });
+      }
+
+      // ======================================================
+      // MARK ORDER AS PAID
+      // ======================================================
+
+      if (
+        order.paymentStatus !==
+        "paid"
+      ) {
+        order.paymentStatus =
+          "paid";
+
+        order.paymentReference =
+          payment?.payment_reference ||
+          reference;
+
+        order.paidAt =
+          new Date();
+
+        order.orderStatus =
+          "pending";
+
+        await order.save();
+
+        console.log(
+          `✅ Order ${order.orderCode} marked as PAID`
+        );
+
+        console.log(
+          "📦 Order status:",
+          order.orderStatus
+        );
+      } else {
+        console.log(
+          `ℹ️ Order ${order.orderCode} is already PAID`
+        );
+      }
+
+      // ======================================================
+      // ACKNOWLEDGE KORA
+      // ======================================================
+
+      return res.status(200).json({
+        received: true,
+        processed: true,
+      });
+    } catch (error) {
+      console.error(
+        "❌ Kora webhook error:",
+        error
+      );
+
+      // Always acknowledge Kora.
+      // This prevents unnecessary retries.
+      return res.status(200).json({
+        received: true,
+        processed: false,
+      });
+    }
+  };
+
+// ============================================================
+// KORA CALLBACK
+// ============================================================
+//
+// Kora sends the customer here after checkout.
+//
+// This route MUST NOT use protect middleware.
+//
+// The customer should end up at:
+// Vercel /order-history
+//
+// ============================================================
+
+export const handleKoraCallback =
+  async (req, res) => {
+    try {
+      console.log(
+        "🔥🔥 KORA CALLBACK RECEIVED 🔥🔥"
+      );
+
+      console.log(
+        "🔥 Callback URL:",
+        `${BACKEND_URL}/api/payments/kora/callback`
+      );
+
+      console.log(
+        "🔥 Frontend URL:",
+        FRONTEND_URL
+      );
+
+      console.log(
+        "🔥 Callback query:",
+        req.query
+      );
+
+      // ======================================================
+      // GET REFERENCE
+      // ======================================================
+
+      const reference =
+        req.query?.reference ||
+        req.query?.trxref ||
+        req.query?.payment_reference;
+
+      console.log(
+        "🔥 Extracted Kora reference:",
+        reference
+      );
+
+      // ======================================================
+      // NO REFERENCE
+      // ======================================================
+
+      if (!reference) {
+        console.error(
+          "❌ Kora callback reference missing"
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "failed",
+
+            reason:
+              "missing_reference",
+          }
+        );
+      }
+
+      // ======================================================
+      // FIND ORDER
+      // ======================================================
+
+      const order =
+        await Order.findOne({
+          transactionReference:
+            reference,
+        });
+
+      if (!order) {
+        console.error(
+          "❌ Callback order not found:",
+          reference
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "failed",
+
+            reason:
+              "order_not_found",
+
+            reference,
+          }
+        );
+      }
+
+      console.log(
+        "✅ Callback order found:",
+        order.orderCode
+      );
+
+      console.log(
+        "💳 Current payment status:",
+        order.paymentStatus
+      );
+
+      // ======================================================
+      // WEBHOOK ALREADY CONFIRMED PAYMENT
+      // ======================================================
+
+      if (
+        order.paymentStatus ===
+        "paid"
+      ) {
+        console.log(
+          "✅ Webhook already marked order as PAID"
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "success",
+
+            orderId:
+              order._id,
+
+            orderCode:
+              order.orderCode,
+          }
+        );
+      }
+
+      // ======================================================
+      // SECRET KEY
+      // ======================================================
+
+      const secretKey =
+        getKoraSecretKey();
+
+      if (!secretKey) {
+        console.error(
+          "❌ KORA_SECRET_KEY is missing"
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "failed",
+
+            reason:
+              "configuration",
+
+            orderId:
+              order._id,
+          }
+        );
+      }
+
+      // ======================================================
+      // VERIFY DIRECTLY WITH KORA
+      // ======================================================
+
+      console.log(
+        "🔍 Order is not marked as paid"
+      );
+
+      console.log(
+        "🔍 Verifying transaction directly with Kora..."
+      );
+
+      const response =
+        await fetch(
+          `${KORA_API_URL}/charges/${encodeURIComponent(
+            reference
+          )}`,
+          {
+            method: "GET",
+
+            headers: {
+              Authorization:
+                `Bearer ${secretKey}`,
+
+              "Content-Type":
+                "application/json",
+            },
+          }
+        );
+
+      const responseText =
+        await response.text();
+
+      console.log(
+        "🔥 Callback Kora HTTP status:",
+        response.status
+      );
+
+      console.log(
+        "🔥 Callback Kora response:",
+        responseText
+      );
+
+      // ======================================================
+      // PARSE RESPONSE
+      // ======================================================
+
+      let data;
+
+      try {
+        data =
+          JSON.parse(
+            responseText
+          );
+      } catch (error) {
+        console.error(
+          "❌ Invalid JSON returned by Kora"
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "failed",
+
+            reason:
+              "invalid_kora_response",
+
+            orderId:
+              order._id,
+          }
+        );
+      }
+
+      // ======================================================
+      // KORA VERIFICATION ERROR
+      // ======================================================
+
+      if (
+        !response.ok ||
+        !data.status
+      ) {
+        console.error(
+          "❌ Kora callback verification failed:",
+          data
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "failed",
+
+            reason:
+              "verification_failed",
+
+            orderId:
+              order._id,
+          }
+        );
+      }
+
+      // ======================================================
+      // PAYMENT DATA
+      // ======================================================
+
+      const payment =
+        data?.data;
+
+      const normalizedStatus =
+        String(
+          payment?.status || ""
+        ).toLowerCase();
+
+      console.log(
+        "🔥 Callback payment status:",
+        payment?.status
+      );
+
+      console.log(
+        "🔥 Callback payment reference:",
+        payment?.payment_reference
+      );
+
+      // ======================================================
+      // PAYMENT NOT SUCCESSFUL
+      // ======================================================
+
+      if (
+        normalizedStatus !==
+        "success"
+      ) {
+        console.log(
+          "⏳ Callback payment is not successful:",
+          payment?.status
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "pending",
+
+            orderId:
+              order._id,
+
+            orderCode:
+              order.orderCode,
+          }
+        );
+      }
+
+      // ======================================================
+      // CHECK AMOUNT
+      // ======================================================
+
+      const paidAmount =
+        Number(
+          payment?.amount_paid ??
+          payment?.amount
+        );
+
+      const expectedAmount =
+        Number(
+          order.totalAmount
+        );
+
+      console.log(
+        "💰 Callback paid amount:",
+        paidAmount
+      );
+
+      console.log(
+        "💰 Callback expected amount:",
+        expectedAmount
+      );
+
+      if (
+        paidAmount !==
+        expectedAmount
+      ) {
+        console.error(
+          "❌ Callback payment amount mismatch"
+        );
+
+        return redirectToFrontend(
+          res,
+          {
+            payment:
+              "failed",
+
+            reason:
+              "amount_mismatch",
+
+            orderId:
+              order._id,
+
+            orderCode:
+              order.orderCode,
+          }
+        );
+      }
+
+      // ======================================================
+      // MARK ORDER AS PAID
+      // ======================================================
+
       order.paymentStatus =
         "paid";
 
@@ -853,795 +1703,41 @@ export const verifyKoraPayment = async (
       await order.save();
 
       console.log(
-        `✅ Order ${order.orderCode} marked as PAID`
-      );
-    }
-
-    return res.status(200).json({
-      success: true,
-
-      paid: true,
-
-      status: "success",
-
-      orderId:
-        order._id,
-
-      orderCode:
-        order.orderCode,
-
-      message:
-        "Payment verified successfully",
-    });
-
-  } catch (error) {
-    console.error(
-      "❌ Kora verification error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      paid: false,
-      message:
-        error.message ||
-        "Payment verification failed",
-    });
-  }
-};
-
-// ============================================================
-// KORA CALLBACK
-// ============================================================
-
-export const handleKoraCallback = async (
-  req,
-  res
-) => {
-  try {
-    console.log(
-      "🔥🔥 KORA CALLBACK RECEIVED 🔥🔥"
-    );
-
-    console.log(
-      "🔥 Callback URL:",
-      `${BACKEND_BASE_URL}/api/payments/kora/callback`
-    );
-
-    console.log(
-      "🔥 Callback query:",
-      req.query
-    );
-
-    console.log(
-      "🔥 Callback body:",
-      req.body
-    );
-
-    // ==========================================================
-    // GET REFERENCE
-    // ==========================================================
-
-    const reference =
-      req.query?.reference ||
-      req.query?.trxref ||
-      req.query?.payment_reference;
-
-    console.log(
-      "🔥 Extracted Kora reference:",
-      reference
-    );
-
-    // ==========================================================
-    // MISSING REFERENCE
-    // ==========================================================
-
-    if (!reference) {
-      console.error(
-        "❌ Kora callback reference missing"
+        `✅ Callback marked order ${order.orderCode} as PAID`
       );
 
-      const destination =
-        createFrontendUrl({
-          payment: "failed",
-          reason:
-            "missing_reference",
-        });
+      // ======================================================
+      // REDIRECT TO ORDER HISTORY
+      // ======================================================
 
-      return sendFrontendRedirect(
+      return redirectToFrontend(
         res,
-        destination
-      );
-    }
-
-    // ==========================================================
-    // CHECK SECRET KEY
-    // ==========================================================
-
-    if (!process.env.KORA_SECRET_KEY) {
-      console.error(
-        "❌ KORA_SECRET_KEY is missing"
-      );
-
-      const destination =
-        createFrontendUrl({
-          payment: "failed",
-          reason:
-            "configuration",
-        });
-
-      return sendFrontendRedirect(
-        res,
-        destination
-      );
-    }
-
-    // ==========================================================
-    // FIND ORDER
-    // ==========================================================
-
-    const order =
-      await Order.findOne({
-        transactionReference:
-          reference,
-      });
-
-    if (!order) {
-      console.error(
-        "❌ Callback order not found:",
-        reference
-      );
-
-      const destination =
-        createFrontendUrl({
-          payment: "failed",
-          reason:
-            "order_not_found",
-        });
-
-      return sendFrontendRedirect(
-        res,
-        destination
-      );
-    }
-
-    console.log(
-      "✅ Callback order found:",
-      order.orderCode
-    );
-
-    console.log(
-      "💳 Current payment status:",
-      order.paymentStatus
-    );
-
-    // ==========================================================
-    // WEBHOOK ALREADY MARKED PAYMENT AS PAID
-    // ==========================================================
-
-    if (
-      order.paymentStatus ===
-      "paid"
-    ) {
-      console.log(
-        "ℹ️ Webhook already marked order as PAID"
-      );
-
-      const destination =
-        createFrontendUrl({
-          payment: "success",
+        {
+          payment:
+            "success",
 
           orderId:
             order._id,
 
           orderCode:
             order.orderCode,
-        });
-
-      console.log(
-        "🚀 Sending customer to:",
-        destination
-      );
-
-      return sendFrontendRedirect(
-        res,
-        destination
-      );
-    }
-
-    // ==========================================================
-    // VERIFY PAYMENT DIRECTLY WITH KORA
-    // ==========================================================
-
-    console.log(
-      "🔍 Order is not marked as paid yet."
-    );
-
-    console.log(
-      "🔍 Verifying transaction directly with Kora..."
-    );
-
-    const response =
-      await fetch(
-        `${KORA_API_URL}/charges/${encodeURIComponent(
-          reference
-        )}`,
-        {
-          method: "GET",
-
-          headers: {
-            Authorization:
-              `Bearer ${process.env.KORA_SECRET_KEY}`,
-
-            "Content-Type":
-              "application/json",
-          },
         }
       );
-
-    const responseText =
-      await response.text();
-
-    console.log(
-      "🔥 Callback Kora HTTP status:",
-      response.status
-    );
-
-    console.log(
-      "🔥 Callback Kora response:",
-      responseText
-    );
-
-    // ==========================================================
-    // PARSE RESPONSE
-    // ==========================================================
-
-    let data;
-
-    try {
-      data =
-        JSON.parse(
-          responseText
-        );
     } catch (error) {
       console.error(
-        "❌ Invalid JSON returned by Kora"
+        "❌ Kora callback error:",
+        error
       );
 
-      const destination =
-        createFrontendUrl({
-          payment: "failed",
-
-          orderId:
-            order._id,
-
-          reason:
-            "invalid_kora_response",
-        });
-
-      return sendFrontendRedirect(
+      return redirectToFrontend(
         res,
-        destination
-      );
-    }
-
-    // ==========================================================
-    // KORA VERIFICATION FAILED
-    // ==========================================================
-
-    if (
-      !response.ok ||
-      !data.status
-    ) {
-      console.error(
-        "❌ Kora callback verification failed:",
-        data
-      );
-
-      const destination =
-        createFrontendUrl({
-          payment: "failed",
-
-          orderId:
-            order._id,
-
-          reference,
-        });
-
-      return sendFrontendRedirect(
-        res,
-        destination
-      );
-    }
-
-    // ==========================================================
-    // PAYMENT DATA
-    // ==========================================================
-
-    const payment =
-      data?.data;
-
-    console.log(
-      "🔥 Callback payment status:",
-      payment?.status
-    );
-
-    console.log(
-      "🔥 Callback payment reference:",
-      payment?.payment_reference
-    );
-
-    // ==========================================================
-    // PAYMENT NOT SUCCESSFUL
-    // ==========================================================
-
-    const normalizedPaymentStatus =
-      String(
-        payment?.status || ""
-      ).toLowerCase();
-
-    if (
-      normalizedPaymentStatus !==
-      "success"
-    ) {
-      console.log(
-        "⏳ Callback payment is not successful:",
-        payment?.status
-      );
-
-      const destination =
-        createFrontendUrl({
-          payment: "pending",
-
-          orderId:
-            order._id,
-
-          orderCode:
-            order.orderCode,
-        });
-
-      return sendFrontendRedirect(
-        res,
-        destination
-      );
-    }
-
-    // ==========================================================
-    // CHECK PAYMENT AMOUNT
-    // ==========================================================
-
-    const paidAmount =
-      Number(
-        payment?.amount_paid ??
-        payment?.amount
-      );
-
-    const expectedAmount =
-      Number(
-        order.totalAmount
-      );
-
-    console.log(
-      "💰 Callback paid amount:",
-      paidAmount
-    );
-
-    console.log(
-      "💰 Callback expected amount:",
-      expectedAmount
-    );
-
-    if (
-      paidAmount !==
-      expectedAmount
-    ) {
-      console.error(
-        "❌ Callback payment amount mismatch"
-      );
-
-      const destination =
-        createFrontendUrl({
-          payment: "failed",
-
-          orderId:
-            order._id,
-
-          orderCode:
-            order.orderCode,
-
-          reason:
-            "amount_mismatch",
-        });
-
-      return sendFrontendRedirect(
-        res,
-        destination
-      );
-    }
-
-    // ==========================================================
-    // MARK ORDER AS PAID
-    // ==========================================================
-
-    order.paymentStatus =
-      "paid";
-
-    order.paymentReference =
-      payment?.payment_reference ||
-      reference;
-
-    order.paidAt =
-      new Date();
-
-    order.orderStatus =
-      "pending";
-
-    await order.save();
-
-    console.log(
-      `✅ Callback marked order ${order.orderCode} as PAID`
-    );
-
-    // ==========================================================
-    // SEND CUSTOMER TO ORDER HISTORY
-    // ==========================================================
-
-    const destination =
-      createFrontendUrl({
-        payment: "success",
-
-        orderId:
-          order._id,
-
-        orderCode:
-          order.orderCode,
-      });
-
-    console.log(
-      "🚀🚀 CUSTOMER REDIRECT DESTINATION:"
-    );
-
-    console.log(
-      destination
-    );
-
-    return sendFrontendRedirect(
-      res,
-      destination
-    );
-
-  } catch (error) {
-    console.error(
-      "❌ Kora callback error:",
-      error
-    );
-
-    try {
-      const destination =
-        createFrontendUrl({
-          payment: "failed",
+        {
+          payment:
+            "failed",
 
           reason:
             "callback_error",
-        });
-
-      return sendFrontendRedirect(
-        res,
-        destination
-      );
-
-    } catch (redirectError) {
-      console.error(
-        "❌ Could not create frontend destination:",
-        redirectError
-      );
-
-      return res.status(500).send(
-        "Payment callback failed."
+        }
       );
     }
-  }
-};
-
-// ============================================================
-// KORA WEBHOOK
-// ============================================================
-
-export const handleKoraWebhook = async (
-  req,
-  res
-) => {
-  try {
-    console.log(
-      "🔥 Kora webhook received"
-    );
-
-    // ==========================================================
-    // CHECK KORA SIGNATURE
-    // ==========================================================
-
-    const signature =
-      req.headers[
-        "x-korapay-signature"
-      ];
-
-    if (!signature) {
-      console.error(
-        "❌ Kora webhook signature missing"
-      );
-
-      return res.status(401).json({
-        success: false,
-        message:
-          "Webhook signature missing",
-      });
-    }
-
-    if (!process.env.KORA_SECRET_KEY) {
-      console.error(
-        "❌ KORA_SECRET_KEY is missing"
-      );
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "Kora payment configuration is missing",
-      });
-    }
-
-    const payload =
-      JSON.stringify(req.body);
-
-    const expectedSignature =
-      crypto
-        .createHmac(
-          "sha256",
-          process.env.KORA_SECRET_KEY
-        )
-        .update(payload)
-        .digest("hex");
-
-    const receivedBuffer =
-      Buffer.from(
-        String(signature),
-        "utf8"
-      );
-
-    const expectedBuffer =
-      Buffer.from(
-        expectedSignature,
-        "utf8"
-      );
-
-    let signatureValid =
-      false;
-
-    if (
-      receivedBuffer.length ===
-      expectedBuffer.length
-    ) {
-      signatureValid =
-        crypto.timingSafeEqual(
-          receivedBuffer,
-          expectedBuffer
-        );
-    }
-
-    if (!signatureValid) {
-      console.error(
-        "❌ Invalid Kora webhook signature"
-      );
-
-      return res.status(401).json({
-        success: false,
-        message:
-          "Invalid webhook signature",
-      });
-    }
-
-    console.log(
-      "✅ Kora webhook signature verified"
-    );
-
-    // ==========================================================
-    // GET WEBHOOK DATA
-    // ==========================================================
-
-    const event =
-      req.body?.event ||
-      req.body?.type;
-
-    const webhookData =
-      req.body?.data ||
-      {};
-
-    const reference =
-      webhookData?.reference ||
-      webhookData?.transaction_reference ||
-      webhookData?.payment_reference;
-
-    console.log(
-      "🔥 Kora webhook event:",
-      event
-    );
-
-    console.log(
-      "🔥 Payment reference:",
-      reference
-    );
-
-    // ==========================================================
-    // MISSING REFERENCE
-    // ==========================================================
-
-    if (!reference) {
-      console.error(
-        "❌ Webhook payment reference missing"
-      );
-
-      return res.status(400).json({
-        success: false,
-        message:
-          "Payment reference missing",
-      });
-    }
-
-    // ==========================================================
-    // FIND ORDER
-    // ==========================================================
-
-    const order =
-      await Order.findOne({
-        transactionReference:
-          reference,
-      });
-
-    if (!order) {
-      console.error(
-        "❌ Webhook order not found:",
-        reference
-      );
-
-      return res.status(404).json({
-        success: false,
-        message:
-          "Order not found",
-      });
-    }
-
-    console.log(
-      "✅ Webhook order found:",
-      order.orderCode
-    );
-
-    // ==========================================================
-    // GET PAYMENT STATUS
-    // ==========================================================
-
-    const paymentStatus =
-      String(
-        webhookData?.status ||
-        ""
-      ).toLowerCase();
-
-    const webhookAmount =
-      Number(
-        webhookData?.amount_paid ??
-        webhookData?.amount
-      );
-
-    const expectedAmount =
-      Number(
-        order.totalAmount
-      );
-
-    console.log(
-      "💰 Expected amount:",
-      expectedAmount
-    );
-
-    console.log(
-      "💰 Received amount:",
-      webhookAmount
-    );
-
-    // ==========================================================
-    // ONLY PROCESS SUCCESS
-    // ==========================================================
-
-    if (
-      event !== "charge.success" &&
-      paymentStatus !== "success"
-    ) {
-      console.log(
-        "⏳ Webhook payment is not successful:",
-        paymentStatus
-      );
-
-      return res.status(200).json({
-        success: true,
-        message:
-          "Webhook received",
-      });
-    }
-
-    // ==========================================================
-    // CHECK AMOUNT
-    // ==========================================================
-
-    if (
-      webhookAmount !==
-      expectedAmount
-    ) {
-      console.error(
-        "❌ Webhook payment amount mismatch"
-      );
-
-      return res.status(400).json({
-        success: false,
-        message:
-          "Payment amount does not match order",
-      });
-    }
-
-    // ==========================================================
-    // MARK ORDER AS PAID
-    // ==========================================================
-
-    if (
-      order.paymentStatus !==
-      "paid"
-    ) {
-      order.paymentStatus =
-        "paid";
-
-      order.paymentReference =
-        webhookData?.payment_reference ||
-        reference;
-
-      order.paidAt =
-        new Date();
-
-      order.orderStatus =
-        "pending";
-
-      await order.save();
-
-      console.log(
-        `✅ Order ${order.orderCode} marked as PAID`
-      );
-
-      console.log(
-        "📦 Order status:",
-        order.orderStatus
-      );
-    } else {
-      console.log(
-        `ℹ️ Order ${order.orderCode} is already PAID`
-      );
-    }
-
-    // ==========================================================
-    // ACKNOWLEDGE WEBHOOK
-    // ==========================================================
-
-    return res.status(200).json({
-      success: true,
-      message:
-        "Webhook processed successfully",
-    });
-
-  } catch (error) {
-    console.error(
-      "❌ Kora webhook error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Webhook processing failed",
-    });
-  }
-};
+  };
