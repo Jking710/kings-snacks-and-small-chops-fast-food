@@ -1,146 +1,260 @@
-import nodemailer from "nodemailer";
+import { BrevoClient } from "@getbrevo/brevo";
 
+const getBrevoClient = () => {
+  const apiKey = process.env.BREVO_API_KEY;
 
-// ─────────────────────────────────────────────────────────────
-// SEND OTP EMAIL
-// ─────────────────────────────────────────────────────────────
+  if (!apiKey) {
+    throw new Error("BREVO_API_KEY is not configured.");
+  }
+
+  return new BrevoClient({
+    apiKey,
+    timeoutInSeconds: 30,
+    maxRetries: 2,
+  });
+};
 
 export const sendOTPEmail = async (
   toEmail,
   otp,
   firstName
 ) => {
-
+  console.log("========== SEND EMAIL DEBUG ==========");
+  console.log("BREVO_API_KEY exists:", !!process.env.BREVO_API_KEY);
   console.log(
-    "========== SEND EMAIL DEBUG =========="
+    "BREVO_SENDER_EMAIL:",
+    process.env.BREVO_SENDER_EMAIL
   );
+  console.log("Sending OTP to:", toEmail);
+  console.log("======================================");
 
-  console.log(
-    "EMAIL_USER:",
-    process.env.EMAIL_USER
-  );
+  const senderEmail =
+    process.env.BREVO_SENDER_EMAIL;
 
-  console.log(
-    "EMAIL_PASS exists:",
-    !!process.env.EMAIL_PASS
-  );
+  if (!senderEmail) {
+    throw new Error(
+      "BREVO_SENDER_EMAIL is not configured."
+    );
+  }
 
-  console.log(
-    "EMAIL_PASS length:",
-    process.env.EMAIL_PASS?.length
-  );
+  const brevo = getBrevoClient();
 
-  console.log(
-    "======================================"
-  );
+  const safeFirstName =
+    firstName || "Customer";
 
+  const htmlContent = `
+    <!DOCTYPE html>
 
-  // ─────────────────────────────────────────
-  // Gmail transporter
-  // ─────────────────────────────────────────
+    <html>
 
-  const transporter =
-    nodemailer.createTransport({
+      <head>
 
-      host: "smtp.gmail.com",
+        <meta charset="utf-8" />
 
-      port: 465,
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0"
+        />
 
-      secure: true,
+      </head>
 
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+      <body
+        style="
+          margin:0;
+          padding:0;
+          background:#f9f5f0;
+          font-family:Georgia,serif;
+        "
+      >
 
-      // Temporary workaround for
-      // self-signed certificate error
-      tls: {
-        rejectUnauthorized: false,
-      },
-
-    });
-
-
-  // ─────────────────────────────────────────
-  // Email content
-  // ─────────────────────────────────────────
-
-  const mailOptions = {
-
-    from:
-      `"Kings Chops" <${process.env.EMAIL_USER}>`,
-
-    to: toEmail,
-
-    subject:
-      "Reset Your Kings Chops Password",
-
-
-    html: `
-      <!DOCTYPE html>
-
-      <html>
-
-        <head>
-
-          <meta charset="utf-8" />
-
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-          />
-
-        </head>
-
-
-        <body
+        <table
+          width="100%"
+          cellpadding="0"
+          cellspacing="0"
           style="
-            margin:0;
-            padding:0;
             background:#f9f5f0;
-            font-family:Georgia,serif;
+            padding:40px 0;
           "
         >
 
-          <table
-            width="100%"
-            cellpadding="0"
-            cellspacing="0"
-            style="
-              background:#f9f5f0;
-              padding:40px 0;
-            "
-          >
+          <tr>
 
-            <tr>
+            <td align="center">
 
-              <td align="center">
+              <table
+                width="520"
+                cellpadding="0"
+                cellspacing="0"
+                style="
+                  background:#ffffff;
+                  border-radius:16px;
+                  overflow:hidden;
+                  box-shadow:
+                    0 4px 24px
+                    rgba(0,0,0,0.08);
+                "
+              >
 
+                <!-- HEADER -->
 
-                <table
-                  width="520"
-                  cellpadding="0"
-                  cellspacing="0"
-                  style="
-                    background:#ffffff;
-                    border-radius:16px;
-                    overflow:hidden;
-                    box-shadow:
-                      0 4px 24px
-                      rgba(0,0,0,0.08);
-                  "
-                >
+                <tr>
 
+                  <td
+                    style="
+                      background:#ea580c;
+                      padding:32px 40px;
+                      text-align:center;
+                    "
+                  >
 
-                  <!-- HEADER -->
-
-                  <tr>
-
-                    <td
+                    <p
                       style="
-                        background:#ea580c;
-                        padding:32px 40px;
+                        margin:0;
+                        font-size:28px;
+                      "
+                    >
+                      👑
+                    </p>
+
+                    <h1
+                      style="
+                        margin:8px 0 0;
+                        color:#ffffff;
+                        font-size:24px;
+                        font-family:Georgia,serif;
+                      "
+                    >
+                      Kings
+                      <span style="color:#fef08a;">
+                        Chops
+                      </span>
+                    </h1>
+
+                    <p
+                      style="
+                        margin:6px 0 0;
+                        color:#fed7aa;
+                        font-size:13px;
+                      "
+                    >
+                      Password Reset Request
+                    </p>
+
+                  </td>
+
+                </tr>
+
+                <!-- BODY -->
+
+                <tr>
+
+                  <td
+                    style="
+                      padding:36px 40px;
+                    "
+                  >
+
+                    <p
+                      style="
+                        margin:0 0 12px;
+                        color:#374151;
+                        font-size:15px;
+                      "
+                    >
+                      Hi
+                      <strong>${safeFirstName}</strong>
+                      👋,
+                    </p>
+
+                    <p
+                      style="
+                        margin:0 0 24px;
+                        color:#6b7280;
+                        font-size:14px;
+                        line-height:1.6;
+                      "
+                    >
+                      We received a request to reset
+                      your Kings Chops password.
+
+                      Use the OTP code below
+                      to continue.
+
+                      This code expires in
+                      <strong>10 minutes</strong>.
+                    </p>
+
+                    <!-- OTP BOX -->
+
+                    <div
+                      style="
+                        background:#fff7ed;
+                        border:2px dashed #f97316;
+                        border-radius:12px;
+                        padding:28px;
+                        text-align:center;
+                        margin:0 0 24px;
+                      "
+                    >
+
+                      <p
+                        style="
+                          margin:0 0 8px;
+                          color:#9a3412;
+                          font-size:12px;
+                          font-weight:bold;
+                          letter-spacing:2px;
+                          text-transform:uppercase;
+                        "
+                      >
+                        Your OTP Code
+                      </p>
+
+                      <p
+                        style="
+                          margin:0;
+                          color:#ea580c;
+                          font-size:42px;
+                          font-weight:bold;
+                          letter-spacing:12px;
+                          font-family:monospace;
+                        "
+                      >
+                        ${otp}
+                      </p>
+
+                    </div>
+
+                    <p
+                      style="
+                        margin:0 0 8px;
+                        color:#6b7280;
+                        font-size:13px;
+                      "
+                    >
+                      ⏱ This code expires in
+                      <strong>10 minutes</strong>.
+                    </p>
+
+                    <p
+                      style="
+                        margin:0 0 24px;
+                        color:#6b7280;
+                        font-size:13px;
+                      "
+                    >
+                      🔒 If you didn't request this,
+                      you can safely ignore this email.
+
+                      Your account remains secure.
+                    </p>
+
+                    <!-- FOOTER -->
+
+                    <div
+                      style="
+                        border-top:1px solid #f3f4f6;
+                        padding-top:20px;
                         text-align:center;
                       "
                     >
@@ -148,240 +262,78 @@ export const sendOTPEmail = async (
                       <p
                         style="
                           margin:0;
-                          font-size:28px;
+                          color:#9ca3af;
+                          font-size:12px;
                         "
                       >
-                        👑
+                        ©
+                        ${new Date().getFullYear()}
+                        Kings Chops · Lagos, Nigeria
                       </p>
 
+                    </div>
 
-                      <h1
-                        style="
-                          margin:8px 0 0;
-                          color:#ffffff;
-                          font-size:24px;
-                          font-family:Georgia,serif;
-                        "
-                      >
-
-                        Kings
-                        <span
-                          style="color:#fef08a;"
-                        >
-                          Chops
-                        </span>
+                  </td>
 
-                      </h1>
+                </tr>
 
+              </table>
 
-                      <p
-                        style="
-                          margin:6px 0 0;
-                          color:#fed7aa;
-                          font-size:13px;
-                        "
-                      >
-                        Password Reset Request
-                      </p>
-
-                    </td>
-
-                  </tr>
+            </td>
 
+          </tr>
 
-                  <!-- BODY -->
+        </table>
 
-                  <tr>
+      </body>
 
-                    <td
-                      style="
-                        padding:36px 40px;
-                      "
-                    >
+    </html>
+  `;
 
+  try {
+    const result =
+      await brevo.transactionalEmails.sendTransacEmail({
+        sender: {
+          name: "Kings Chops",
+          email: senderEmail,
+        },
 
-                      <p
-                        style="
-                          margin:0 0 12px;
-                          color:#374151;
-                          font-size:15px;
-                        "
-                      >
+        to: [
+          {
+            email: toEmail,
+            name: safeFirstName,
+          },
+        ],
 
-                        Hi
-                        <strong>
-                          ${firstName}
-                        </strong>
-                        👋,
+        subject:
+          "Reset Your Kings Chops Password",
 
-                      </p>
+        htmlContent,
+      });
 
+    console.log(
+      "✅ OTP email sent successfully."
+    );
 
-                      <p
-                        style="
-                          margin:0 0 24px;
-                          color:#6b7280;
-                          font-size:14px;
-                          line-height:1.6;
-                        "
-                      >
+    console.log(
+      "Brevo message ID:",
+      result?.messageId
+    );
 
-                        We received a request to reset
-                        your Kings Chops password.
+    return result;
+  } catch (error) {
+    console.error(
+      "❌ Brevo email error:",
+      error?.message || error
+    );
 
-                        Use the OTP code below
-                        to continue.
+    if (error?.body) {
+      console.error(
+        "Brevo error body:",
+        error.body
+      );
+    }
 
-                        This code expires in
-                        <strong>
-                          10 minutes
-                        </strong>.
-
-                      </p>
-
-
-                      <!-- OTP BOX -->
-
-                      <div
-                        style="
-                          background:#fff7ed;
-                          border:
-                            2px dashed #f97316;
-                          border-radius:12px;
-                          padding:28px;
-                          text-align:center;
-                          margin:0 0 24px;
-                        "
-                      >
-
-
-                        <p
-                          style="
-                            margin:0 0 8px;
-                            color:#9a3412;
-                            font-size:12px;
-                            font-weight:bold;
-                            letter-spacing:2px;
-                            text-transform:uppercase;
-                          "
-                        >
-
-                          Your OTP Code
-
-                        </p>
-
-
-                        <p
-                          style="
-                            margin:0;
-                            color:#ea580c;
-                            font-size:42px;
-                            font-weight:bold;
-                            letter-spacing:12px;
-                            font-family:monospace;
-                          "
-                        >
-
-                          ${otp}
-
-                        </p>
-
-
-                      </div>
-
-
-                      <p
-                        style="
-                          margin:0 0 8px;
-                          color:#6b7280;
-                          font-size:13px;
-                        "
-                      >
-
-                        ⏱ This code expires in
-                        <strong>
-                          10 minutes
-                        </strong>.
-
-                      </p>
-
-
-                      <p
-                        style="
-                          margin:0 0 24px;
-                          color:#6b7280;
-                          font-size:13px;
-                        "
-                      >
-
-                        🔒 If you didn't request this,
-                        you can safely ignore this email.
-
-                        Your account remains secure.
-
-                      </p>
-
-
-                      <!-- FOOTER -->
-
-                      <div
-                        style="
-                          border-top:
-                            1px solid #f3f4f6;
-                          padding-top:20px;
-                          text-align:center;
-                        "
-                      >
-
-                        <p
-                          style="
-                            margin:0;
-                            color:#9ca3af;
-                            font-size:12px;
-                          "
-                        >
-
-                          ©
-                          ${new Date().getFullYear()}
-                          Kings Chops · Lagos, Nigeria
-
-                        </p>
-
-                      </div>
-
-
-                    </td>
-
-                  </tr>
-
-
-                </table>
-
-
-              </td>
-
-            </tr>
-
-          </table>
-
-        </body>
-
-      </html>
-    `,
-  };
-
-
-  // ─────────────────────────────────────────
-  // SEND EMAIL
-  // ─────────────────────────────────────────
-
-  await transporter.sendMail(
-    mailOptions
-  );
-
-
-  console.log(
-    "✅ OTP email sent successfully to:",
-    toEmail
-  );
+    throw error;
+  }
 };
