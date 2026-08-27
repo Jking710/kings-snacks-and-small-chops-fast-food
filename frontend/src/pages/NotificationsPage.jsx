@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Bell,
   CheckCheck,
@@ -24,6 +24,8 @@ function NotificationsPage() {
     markAllAsRead,
     deleteAllNotifications,
   } = useNotifications();
+
+  const [deleting, setDeleting] = useState(false);
 
   const getIcon = (type) => {
     switch (type) {
@@ -59,15 +61,29 @@ function NotificationsPage() {
   };
 
   const handleDeleteAll = async () => {
-    if (notifications.length === 0) return;
+    if (notifications.length === 0 || deleting) {
+      return;
+    }
 
     const confirmed = window.confirm(
       "Are you sure you want to delete all notifications?",
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
-    await deleteAllNotifications();
+    try {
+      setDeleting(true);
+
+      await deleteAllNotifications();
+    } catch (error) {
+      console.error("Delete all notifications error:", error);
+
+      window.alert(error.message || "Failed to delete all notifications");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -193,25 +209,28 @@ function NotificationsPage() {
             ))}
           </div>
         )}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-6">
+
+        {/* BOTTOM BUTTONS */}
+
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-6">
           <Link
             to="/"
-            className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2.5 rounded-xl border border-[#ead9cd] bg-white text-sm font-semibold text-[#8b563b] hover:bg-[#f6eee8] transition"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#ead9cd] bg-white text-sm font-semibold text-[#8b563b] hover:bg-[#f6eee8] transition"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
 
-          {notifications.length > 0 && (
-            <button
-              type="button"
-              onClick={handleDeleteAll}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition cursor-pointer"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete All Notifications
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleDeleteAll}
+            disabled={notifications.length === 0 || deleting}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="w-4 h-4" />
+
+            {deleting ? "Deleting..." : "Delete all notifications"}
+          </button>
         </div>
       </div>
     </div>

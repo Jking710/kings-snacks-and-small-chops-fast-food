@@ -46,11 +46,14 @@ export function NotificationProvider({ children }) {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API_BASE}/notifications`, {
-        method: "GET",
-        credentials: "include",
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_BASE}/notifications`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
 
       const data = await response.json();
 
@@ -74,10 +77,14 @@ export function NotificationProvider({ children }) {
 
       return list;
     } catch (error) {
-      console.error("Fetch notifications error:", error);
+      console.error(
+        "Fetch notifications error:",
+        error
+      );
 
       setError(
-        error.message || "Failed to fetch notifications"
+        error.message ||
+          "Failed to fetch notifications"
       );
 
       return [];
@@ -189,43 +196,53 @@ export function NotificationProvider({ children }) {
     }
   }, [isAuthenticated, getAuthHeaders]);
 
-  const deleteAllNotifications = useCallback(async () => {
-    if (!isAuthenticated) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE}/notifications/delete-all`,
-        {
-          method: "DELETE",
-          credentials: "include",
-          headers: getAuthHeaders(),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Failed to delete all notifications"
-        );
+  const deleteAllNotifications =
+    useCallback(async () => {
+      if (!isAuthenticated) {
+        return;
       }
 
-      setNotifications([]);
-      setUnreadCount(0);
+      try {
+        const response = await fetch(
+          `${API_BASE}/notifications/delete-all`,
+          {
+            method: "DELETE",
+            credentials: "include",
+            headers: getAuthHeaders(),
+          }
+        );
 
-      return data;
-    } catch (error) {
-      console.error(
-        "Delete all notifications error:",
-        error
-      );
+        const data = await response.json();
 
-      throw error;
-    }
-  }, [isAuthenticated, getAuthHeaders]);
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Failed to delete all notifications"
+          );
+        }
+
+        // Clear the shared notification state.
+        // Every component using this context updates
+        // immediately.
+        setNotifications([]);
+        setUnreadCount(0);
+        setError("");
+
+        return data;
+      } catch (error) {
+        console.error(
+          "Delete all notifications error:",
+          error
+        );
+
+        setError(
+          error.message ||
+            "Failed to delete all notifications"
+        );
+
+        throw error;
+      }
+    }, [isAuthenticated, getAuthHeaders]);
 
   const refreshNotifications = useCallback(async () => {
     return fetchNotifications();
@@ -236,7 +253,6 @@ export function NotificationProvider({ children }) {
       setNotifications([]);
       setUnreadCount(0);
       setError("");
-
       return;
     }
 

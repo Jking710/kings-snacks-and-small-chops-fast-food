@@ -32,6 +32,12 @@ router.patch(
   markAllNotificationsAsRead
 );
 
+router.delete(
+  "/delete-all",
+  protect,
+  deleteAllNotifications
+);
+
 router.get(
   "/:id",
   protect,
@@ -48,12 +54,6 @@ router.delete(
   "/:id",
   protect,
   deleteNotification
-);
-
-router.delete(
-  "/",
-  protect,
-  deleteAllNotifications
 );
 
 export default router;
