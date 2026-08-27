@@ -8,7 +8,7 @@ import {
   Info,
   ArrowRight,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useNotifications } from "../NotificationContext.jsx";
 
 function NotificationsPage() {
@@ -219,6 +219,18 @@ function NotificationsPage() {
 
           </div>
         )}
+
+        <div classname="flex justify-between items-center mt-6">
+          <div>
+          <Link to="/" className="flex items-center gap-1 text-sm font-semibold text-[#8b563b] hover:text-[#5a3825] transition">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+
+          </div>
+          <div></div>
+
+        </div>
 
       </div>
 
