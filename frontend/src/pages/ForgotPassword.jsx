@@ -4,7 +4,7 @@ import { faCrown } from "@fortawesome/free-solid-svg-icons";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, AlertCircle, ArrowLeft, CheckCircle } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -19,7 +19,7 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
