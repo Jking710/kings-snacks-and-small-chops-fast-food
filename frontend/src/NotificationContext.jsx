@@ -9,16 +9,13 @@ import React, {
 
 import { useAuth } from "./AuthContext.jsx";
 
-const NotificationContext =
-  createContext(null);
+const NotificationContext = createContext(null);
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
   "http://localhost:5000/api";
 
-export function NotificationProvider({
-  children,
-}) {
+export function NotificationProvider({ children }) {
   const { isAuthenticated } = useAuth();
 
   const [notifications, setNotifications] =
@@ -33,11 +30,29 @@ export function NotificationProvider({
   const [error, setError] =
     useState("");
 
+  const getAuthHeaders = () => {
+    const token =
+      localStorage.getItem("token");
+
+    return {
+      "Content-Type":
+        "application/json",
+
+      ...(token
+        ? {
+            Authorization:
+              `Bearer ${token}`,
+          }
+        : {}),
+    };
+  };
+
   const fetchNotifications =
     useCallback(async () => {
       if (!isAuthenticated) {
         setNotifications([]);
         setUnreadCount(0);
+
         return [];
       }
 
@@ -50,10 +65,8 @@ export function NotificationProvider({
           {
             method: "GET",
             credentials: "include",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+            headers:
+              getAuthHeaders(),
           }
         );
 
@@ -76,10 +89,12 @@ export function NotificationProvider({
         setNotifications(list);
 
         setUnreadCount(
-          typeof data.unreadCount === "number"
+          typeof data.unreadCount ===
+            "number"
             ? data.unreadCount
             : list.filter(
-                (item) => !item.isRead
+                (item) =>
+                  !item.isRead
               ).length
         );
 
@@ -101,65 +116,82 @@ export function NotificationProvider({
       }
     }, [isAuthenticated]);
 
-  const markAsRead = useCallback(
-    async (id) => {
-      if (!isAuthenticated || !id) {
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `${API_BASE}/notifications/${id}/read`,
-          {
-            method: "PATCH",
-            credentials: "include",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-          }
-        );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to mark notification as read"
-          );
+  const markAsRead =
+    useCallback(
+      async (id) => {
+        if (
+          !isAuthenticated ||
+          !id
+        ) {
+          return;
         }
 
-        setNotifications((previous) =>
-          previous.map((item) =>
-            item._id === id
-              ? {
-                  ...item,
-                  isRead: true,
-                  readAt:
-                    data.notification?.readAt ||
-                    new Date().toISOString(),
-                }
-              : item
-          )
-        );
+        try {
+          const response =
+            await fetch(
+              `${API_BASE}/notifications/${id}/read`,
+              {
+                method: "PATCH",
 
-        setUnreadCount((previous) =>
-          Math.max(0, previous - 1)
-        );
+                credentials:
+                  "include",
 
-        return data.notification;
-      } catch (error) {
-        console.error(
-          "Mark notification as read error:",
-          error
-        );
+                headers:
+                  getAuthHeaders(),
+              }
+            );
 
-        throw error;
-      }
-    },
-    [isAuthenticated]
-  );
+          const data =
+            await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.message ||
+                "Failed to mark notification as read"
+            );
+          }
+
+          setNotifications(
+            (previous) =>
+              previous.map(
+                (item) =>
+                  item._id === id
+                    ? {
+                        ...item,
+
+                        isRead:
+                          true,
+
+                        readAt:
+                          data.notification
+                            ?.readAt ||
+                          new Date()
+                            .toISOString(),
+                      }
+                    : item
+              )
+          );
+
+          setUnreadCount(
+            (previous) =>
+              Math.max(
+                0,
+                previous - 1
+              )
+          );
+
+          return data.notification;
+        } catch (error) {
+          console.error(
+            "Mark notification as read error:",
+            error
+          );
+
+          throw error;
+        }
+      },
+      [isAuthenticated]
+    );
 
   const markAllAsRead =
     useCallback(async () => {
@@ -168,17 +200,19 @@ export function NotificationProvider({
       }
 
       try {
-        const response = await fetch(
-          `${API_BASE}/notifications/read-all`,
-          {
-            method: "PATCH",
-            credentials: "include",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-          }
-        );
+        const response =
+          await fetch(
+            `${API_BASE}/notifications/read-all`,
+            {
+              method: "PATCH",
+
+              credentials:
+                "include",
+
+              headers:
+                getAuthHeaders(),
+            }
+          );
 
         const data =
           await response.json();
@@ -193,13 +227,19 @@ export function NotificationProvider({
         const readAt =
           new Date().toISOString();
 
-        setNotifications((previous) =>
-          previous.map((item) => ({
-            ...item,
-            isRead: true,
-            readAt:
-              item.readAt || readAt,
-          }))
+        setNotifications(
+          (previous) =>
+            previous.map(
+              (item) => ({
+                ...item,
+
+                isRead: true,
+
+                readAt:
+                  item.readAt ||
+                  readAt,
+              })
+            )
         );
 
         setUnreadCount(0);
@@ -225,14 +265,16 @@ export function NotificationProvider({
       setNotifications([]);
       setUnreadCount(0);
       setError("");
+
       return;
     }
 
     fetchNotifications();
 
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 5000);
+    const interval =
+      setInterval(() => {
+        fetchNotifications();
+      }, 10000);
 
     return () => {
       clearInterval(interval);
