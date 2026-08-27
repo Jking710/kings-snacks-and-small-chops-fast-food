@@ -48,7 +48,7 @@ function Hero() {
                 rounded-full
                 px-6
                 py-3
-                sm:text-2xl
+                sm:text-xl
                 cursor-pointer
                 hover:bg-[#c45b2c]
                 hover:scale-105
@@ -71,7 +71,7 @@ function Hero() {
                 border-2
                 px-6
                 py-3
-                 sm:text-2xl
+                 sm:text-xl
                 rounded-full
                 cursor-pointer
                 hover:scale-105
