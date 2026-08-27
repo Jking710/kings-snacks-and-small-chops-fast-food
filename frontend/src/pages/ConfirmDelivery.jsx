@@ -19,7 +19,7 @@ function ConfirmDelivery() {
       const token = localStorage.getItem("kc_token");
 
       const response = await fetch(
-        `${API_BASE}/api/orders/${id}/confirm-delivery`,
+        `${API_BASE}/orders/${id}/confirm-delivery`,
         {
           method: "PATCH",
           credentials: "include",

@@ -56,7 +56,7 @@ function OrderHistory() {
       // ----------------------------------------------------------
 
       const response = await fetch(
-        `${API_BASE}/api/orders/my-orders`,
+        `${API_BASE}/orders/my-orders`,
         {
           method: "GET",
 
