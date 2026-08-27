@@ -11,254 +11,175 @@ import { useAuth } from "./AuthContext.jsx";
 
 const NotificationContext = createContext(null);
 
-const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export function NotificationProvider({ children }) {
   const { isAuthenticated } = useAuth();
 
-  const [notifications, setNotifications] =
-    useState([]);
+  const [notifications, setNotifications] = useState([]);
 
-  const [unreadCount, setUnreadCount] =
-    useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   const getAuthHeaders = () => {
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("kc_token");
 
     return {
-      "Content-Type":
-        "application/json",
+      "Content-Type": "application/json",
 
       ...(token
         ? {
-            Authorization:
-              `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           }
         : {}),
     };
   };
 
-  const fetchNotifications =
-    useCallback(async () => {
-      if (!isAuthenticated) {
-        setNotifications([]);
-        setUnreadCount(0);
+  const fetchNotifications = useCallback(async () => {
+    if (!isAuthenticated) {
+      setNotifications([]);
+      setUnreadCount(0);
 
-        return [];
+      return [];
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(`${API_BASE}/notifications`, {
+        method: "GET",
+        credentials: "include",
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch notifications");
       }
 
-      try {
-        setLoading(true);
-        setError("");
+      const list = Array.isArray(data.notifications) ? data.notifications : [];
 
-        const response = await fetch(
-          `${API_BASE}/notifications`,
-          {
-            method: "GET",
-            credentials: "include",
-            headers:
-              getAuthHeaders(),
-          }
-        );
+      setNotifications(list);
 
-        const data =
-          await response.json();
+      setUnreadCount(
+        typeof data.unreadCount === "number"
+          ? data.unreadCount
+          : list.filter((item) => !item.isRead).length,
+      );
 
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to fetch notifications"
-          );
-        }
+      return list;
+    } catch (error) {
+      console.error("Fetch notifications error:", error);
 
-        const list = Array.isArray(
-          data.notifications
-        )
-          ? data.notifications
-          : [];
+      setError(error.message || "Failed to fetch notifications");
 
-        setNotifications(list);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
-        setUnreadCount(
-          typeof data.unreadCount ===
-            "number"
-            ? data.unreadCount
-            : list.filter(
-                (item) =>
-                  !item.isRead
-              ).length
-        );
-
-        return list;
-      } catch (error) {
-        console.error(
-          "Fetch notifications error:",
-          error
-        );
-
-        setError(
-          error.message ||
-            "Failed to fetch notifications"
-        );
-
-        return [];
-      } finally {
-        setLoading(false);
-      }
-    }, [isAuthenticated]);
-
-  const markAsRead =
-    useCallback(
-      async (id) => {
-        if (
-          !isAuthenticated ||
-          !id
-        ) {
-          return;
-        }
-
-        try {
-          const response =
-            await fetch(
-              `${API_BASE}/notifications/${id}/read`,
-              {
-                method: "PATCH",
-
-                credentials:
-                  "include",
-
-                headers:
-                  getAuthHeaders(),
-              }
-            );
-
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-            throw new Error(
-              data.message ||
-                "Failed to mark notification as read"
-            );
-          }
-
-          setNotifications(
-            (previous) =>
-              previous.map(
-                (item) =>
-                  item._id === id
-                    ? {
-                        ...item,
-
-                        isRead:
-                          true,
-
-                        readAt:
-                          data.notification
-                            ?.readAt ||
-                          new Date()
-                            .toISOString(),
-                      }
-                    : item
-              )
-          );
-
-          setUnreadCount(
-            (previous) =>
-              Math.max(
-                0,
-                previous - 1
-              )
-          );
-
-          return data.notification;
-        } catch (error) {
-          console.error(
-            "Mark notification as read error:",
-            error
-          );
-
-          throw error;
-        }
-      },
-      [isAuthenticated]
-    );
-
-  const markAllAsRead =
-    useCallback(async () => {
-      if (!isAuthenticated) {
+  const markAsRead = useCallback(
+    async (id) => {
+      if (!isAuthenticated || !id) {
         return;
       }
 
       try {
-        const response =
-          await fetch(
-            `${API_BASE}/notifications/read-all`,
-            {
-              method: "PATCH",
+        const response = await fetch(`${API_BASE}/notifications/${id}/read`, {
+          method: "PATCH",
 
-              credentials:
-                "include",
+          credentials: "include",
 
-              headers:
-                getAuthHeaders(),
-            }
-          );
+          headers: getAuthHeaders(),
+        });
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.message ||
-              "Failed to mark all notifications as read"
+            data.message || "Failed to mark notification as read",
           );
         }
 
-        const readAt =
-          new Date().toISOString();
+        setNotifications((previous) =>
+          previous.map((item) =>
+            item._id === id
+              ? {
+                  ...item,
 
-        setNotifications(
-          (previous) =>
-            previous.map(
-              (item) => ({
-                ...item,
+                  isRead: true,
 
-                isRead: true,
-
-                readAt:
-                  item.readAt ||
-                  readAt,
-              })
-            )
+                  readAt: data.notification?.readAt || new Date().toISOString(),
+                }
+              : item,
+          ),
         );
 
-        setUnreadCount(0);
+        setUnreadCount((previous) => Math.max(0, previous - 1));
 
-        return data;
+        return data.notification;
       } catch (error) {
-        console.error(
-          "Mark all notifications as read error:",
-          error
-        );
+        console.error("Mark notification as read error:", error);
 
         throw error;
       }
-    }, [isAuthenticated]);
+    },
+    [isAuthenticated],
+  );
 
-  const refreshNotifications =
-    useCallback(async () => {
-      return fetchNotifications();
-    }, [fetchNotifications]);
+  const markAllAsRead = useCallback(async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/notifications/read-all`, {
+        method: "PATCH",
+
+        credentials: "include",
+
+        headers: getAuthHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to mark all notifications as read",
+        );
+      }
+
+      const readAt = new Date().toISOString();
+
+      setNotifications((previous) =>
+        previous.map((item) => ({
+          ...item,
+
+          isRead: true,
+
+          readAt: item.readAt || readAt,
+        })),
+      );
+
+      setUnreadCount(0);
+
+      return data;
+    } catch (error) {
+      console.error("Mark all notifications as read error:", error);
+
+      throw error;
+    }
+  }, [isAuthenticated]);
+
+  const refreshNotifications = useCallback(async () => {
+    return fetchNotifications();
+  }, [fetchNotifications]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -271,18 +192,14 @@ export function NotificationProvider({ children }) {
 
     fetchNotifications();
 
-    const interval =
-      setInterval(() => {
-        fetchNotifications();
-      }, 10000);
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 10000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [
-    isAuthenticated,
-    fetchNotifications,
-  ]);
+  }, [isAuthenticated, fetchNotifications]);
 
   const value = useMemo(
     () => ({
@@ -304,25 +221,22 @@ export function NotificationProvider({ children }) {
       refreshNotifications,
       markAsRead,
       markAllAsRead,
-    ]
+    ],
   );
 
   return (
-    <NotificationContext.Provider
-      value={value}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );
 }
 
 export function useNotifications() {
-  const context =
-    useContext(NotificationContext);
+  const context = useContext(NotificationContext);
 
   if (!context) {
     throw new Error(
-      "useNotifications must be used inside NotificationProvider"
+      "useNotifications must be used inside NotificationProvider",
     );
   }
 
