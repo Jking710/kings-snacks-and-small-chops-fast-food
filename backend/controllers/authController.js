@@ -129,7 +129,7 @@ const createLoginNotification = (user, loginMethod = "email") => {
 
     message: `Welcome back, ${user.firstName}! 👋 Happy to have you back at Kings Chops. We hope you enjoy your next order.`,
 
-    link: "/",
+    link: "/build-snack-box",
 
     metadata: {
       loginMethod,
@@ -151,7 +151,7 @@ const createWelcomeNotification = (user) => {
 
     message: `Welcome, ${user.firstName}, to Kings Chops! 🎉 We are delighted to have you with us. Enjoy delicious snacks and a great ordering experience.`,
 
-    link: "/",
+    link: "/build-snack-box",
 
     metadata: {
       registrationMethod: user.authProvider || "local",
