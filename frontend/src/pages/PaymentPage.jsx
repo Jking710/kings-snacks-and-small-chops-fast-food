@@ -72,7 +72,7 @@ function PaymentPage() {
 
       const apiUrl = (
         import.meta.env.VITE_API_URL ||
-        "http://localhost:5000"
+        "http://localhost:5000/api"
       ).replace(/\/+$/, "");
 
       const response = await fetch(
