@@ -326,3 +326,45 @@ export const deleteNotification = async (
     });
   }
 };
+
+/*
+============================================================
+DELETE ALL NOTIFICATIONS
+DELETE /api/notifications
+============================================================
+*/
+
+export const deleteAllNotifications = async (req, res) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication is required",
+      });
+    }
+
+    const result = await Notification.deleteMany({
+      user: req.user._id,
+    });
+
+    console.log(
+      `🗑️ Deleted ${result.deletedCount} notifications for user ${req.user._id}`
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "All notifications deleted",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error(
+      "Delete all notifications error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete all notifications",
+    });
+  }
+};

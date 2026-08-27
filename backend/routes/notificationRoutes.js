@@ -7,6 +7,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
+  deleteAllNotifications,
 } from "../controllers/notificationController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -47,6 +48,12 @@ router.delete(
   "/:id",
   protect,
   deleteNotification
+);
+
+router.delete(
+  "/",
+  protect,
+  deleteAllNotifications
 );
 
 export default router;

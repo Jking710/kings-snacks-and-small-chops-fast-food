@@ -11,38 +11,34 @@ import { useAuth } from "./AuthContext.jsx";
 
 const NotificationContext = createContext(null);
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export function NotificationProvider({ children }) {
   const { isAuthenticated } = useAuth();
 
   const [notifications, setNotifications] = useState([]);
-
   const [unreadCount, setUnreadCount] = useState(0);
-
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState("");
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem("kc_token");
 
     return {
       "Content-Type": "application/json",
-
       ...(token
         ? {
             Authorization: `Bearer ${token}`,
           }
         : {}),
     };
-  };
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated) {
       setNotifications([]);
       setUnreadCount(0);
-
       return [];
     }
 
@@ -59,30 +55,36 @@ export function NotificationProvider({ children }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch notifications");
+        throw new Error(
+          data.message || "Failed to fetch notifications"
+        );
       }
 
-      const list = Array.isArray(data.notifications) ? data.notifications : [];
+      const list = Array.isArray(data.notifications)
+        ? data.notifications
+        : [];
 
       setNotifications(list);
 
       setUnreadCount(
         typeof data.unreadCount === "number"
           ? data.unreadCount
-          : list.filter((item) => !item.isRead).length,
+          : list.filter((item) => !item.isRead).length
       );
 
       return list;
     } catch (error) {
       console.error("Fetch notifications error:", error);
 
-      setError(error.message || "Failed to fetch notifications");
+      setError(
+        error.message || "Failed to fetch notifications"
+      );
 
       return [];
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, getAuthHeaders]);
 
   const markAsRead = useCallback(
     async (id) => {
@@ -91,19 +93,21 @@ export function NotificationProvider({ children }) {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/notifications/${id}/read`, {
-          method: "PATCH",
-
-          credentials: "include",
-
-          headers: getAuthHeaders(),
-        });
+        const response = await fetch(
+          `${API_BASE}/notifications/${id}/read`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: getAuthHeaders(),
+          }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.message || "Failed to mark notification as read",
+            data.message ||
+              "Failed to mark notification as read"
           );
         }
 
@@ -112,25 +116,30 @@ export function NotificationProvider({ children }) {
             item._id === id
               ? {
                   ...item,
-
                   isRead: true,
-
-                  readAt: data.notification?.readAt || new Date().toISOString(),
+                  readAt:
+                    data.notification?.readAt ||
+                    new Date().toISOString(),
                 }
-              : item,
-          ),
+              : item
+          )
         );
 
-        setUnreadCount((previous) => Math.max(0, previous - 1));
+        setUnreadCount((previous) =>
+          Math.max(0, previous - 1)
+        );
 
         return data.notification;
       } catch (error) {
-        console.error("Mark notification as read error:", error);
+        console.error(
+          "Mark notification as read error:",
+          error
+        );
 
         throw error;
       }
     },
-    [isAuthenticated],
+    [isAuthenticated, getAuthHeaders]
   );
 
   const markAllAsRead = useCallback(async () => {
@@ -139,19 +148,21 @@ export function NotificationProvider({ children }) {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/notifications/read-all`, {
-        method: "PATCH",
-
-        credentials: "include",
-
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `${API_BASE}/notifications/read-all`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to mark all notifications as read",
+          data.message ||
+            "Failed to mark all notifications as read"
         );
       }
 
@@ -160,22 +171,61 @@ export function NotificationProvider({ children }) {
       setNotifications((previous) =>
         previous.map((item) => ({
           ...item,
-
           isRead: true,
-
           readAt: item.readAt || readAt,
-        })),
+        }))
       );
 
       setUnreadCount(0);
 
       return data;
     } catch (error) {
-      console.error("Mark all notifications as read error:", error);
+      console.error(
+        "Mark all notifications as read error:",
+        error
+      );
 
       throw error;
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, getAuthHeaders]);
+
+  const deleteAllNotifications = useCallback(async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/notifications/delete-all`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: getAuthHeaders(),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Failed to delete all notifications"
+        );
+      }
+
+      setNotifications([]);
+      setUnreadCount(0);
+
+      return data;
+    } catch (error) {
+      console.error(
+        "Delete all notifications error:",
+        error
+      );
+
+      throw error;
+    }
+  }, [isAuthenticated, getAuthHeaders]);
 
   const refreshNotifications = useCallback(async () => {
     return fetchNotifications();
@@ -211,6 +261,7 @@ export function NotificationProvider({ children }) {
       refreshNotifications,
       markAsRead,
       markAllAsRead,
+      deleteAllNotifications,
     }),
     [
       notifications,
@@ -221,7 +272,8 @@ export function NotificationProvider({ children }) {
       refreshNotifications,
       markAsRead,
       markAllAsRead,
-    ],
+      deleteAllNotifications,
+    ]
   );
 
   return (
@@ -236,7 +288,7 @@ export function useNotifications() {
 
   if (!context) {
     throw new Error(
-      "useNotifications must be used inside NotificationProvider",
+      "useNotifications must be used inside NotificationProvider"
     );
   }
 
