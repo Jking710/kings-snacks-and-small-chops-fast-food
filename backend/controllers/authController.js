@@ -125,7 +125,7 @@ const createLoginNotification = (user, loginMethod = "email") => {
 
     type: "login",
 
-    title: "Welcome back",
+    title: "New Login Detected",
 
     message: `Welcome back, ${user.firstName}! 👋 Happy to have you back at Kings Chops. We hope you enjoy your next order.`,
 
