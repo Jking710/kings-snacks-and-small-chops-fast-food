@@ -76,7 +76,7 @@ function PaymentPage() {
       ).replace(/\/+$/, "");
 
       const response = await fetch(
-        `${apiUrl}/api/payments/kora/initialize`,
+        `${apiUrl}/payments/kora/initialize`,
         {
           method: "POST",
 
