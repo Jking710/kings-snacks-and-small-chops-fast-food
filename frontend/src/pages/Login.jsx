@@ -41,16 +41,6 @@ function Login() {
   const from =
     location.state?.from?.pathname || "/";
 
-  // ─────────────────────────────────────────────────────────────
-  // DO NOT REDIRECT IMMEDIATELY AFTER LOGIN
-  // ─────────────────────────────────────────────────────────────
-  //
-  // AuthContext changes isAuthenticated immediately after login.
-  // The old code redirected here before the popup had time to show.
-  //
-  // We now handle navigation inside handleSubmit and
-  // handleGoogleResponse after showing the popup.
-  // ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (isAuthenticated) {
