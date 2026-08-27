@@ -119,20 +119,15 @@ const createNotificationSafely = async ({
 // LOGIN NOTIFICATION
 // ─────────────────────────────────────────────────────────────
 
-const createLoginNotification = (
-  user,
-  loginMethod = "email"
-) => {
+const createLoginNotification = (user, loginMethod = "email") => {
   return createNotificationSafely({
     user,
 
     type: "login",
 
-    title:
-      "Welcome back! 👋",
+    title: "Welcome back",
 
-    message:
-      `Welcome back, ${user.firstName} Happy to have you back at Kings Chops. We hope you enjoy your next order.`,
+    message: `Welcome back, ${user.firstName}! 👋 Happy to have you back at Kings Chops. We hope you enjoy your next order.`,
 
     link: "/menu",
 
@@ -152,9 +147,9 @@ const createWelcomeNotification = (user) => {
 
     type: "welcome",
 
-    title: "Welcome to Kings Chops! 🎉",
+    title: "Welcome to Kings Chops",
 
-    message: `Welcome, ${user.firstName}, to Kings Chops! We are delighted to have you with us. Enjoy delicious snacks and a great ordering experience.`,
+    message: `Welcome, ${user.firstName}, to Kings Chops! 🎉 We are delighted to have you with us. Enjoy delicious snacks and a great ordering experience.`,
 
     link: "/menu",
 
