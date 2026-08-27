@@ -10,7 +10,7 @@ const AuthContext = createContext(null);
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
-  "http://localhost:5000";
+  "http://localhost:5000/api";
 
 // ─────────────────────────────────────────────────────────────
 // API HELPER
@@ -101,7 +101,7 @@ export function AuthProvider({
 
         const data =
           await apiFetch(
-            "/api/auth/me"
+            "/auth/me"
           );
 
         if (data?.user) {
@@ -148,7 +148,7 @@ export function AuthProvider({
 
       const data =
         await apiFetch(
-          "/api/auth/register",
+          "/auth/register",
           {
             method: "POST",
             body: JSON.stringify(
@@ -197,7 +197,7 @@ export function AuthProvider({
 
       const data =
         await apiFetch(
-          "/api/auth/login",
+          "/auth/login",
           {
             method: "POST",
             body: JSON.stringify({
@@ -253,7 +253,7 @@ export function AuthProvider({
 
       const data =
         await apiFetch(
-          "/api/auth/google",
+          "/auth/google",
           {
             method: "POST",
             body: JSON.stringify({
@@ -304,7 +304,7 @@ export function AuthProvider({
 
       const data =
         await apiFetch(
-          "/api/auth/profile",
+          "/auth/profile",
           {
             method: "PUT",
 
@@ -349,7 +349,7 @@ export function AuthProvider({
 
       const data =
         await apiFetch(
-          "/api/auth/phone",
+          "/auth/phone",
           {
             method: "PUT",
 
@@ -389,7 +389,7 @@ export function AuthProvider({
       setError(null);
 
       await apiFetch(
-        "/api/auth/logout",
+        "/auth/logout",
         {
           method: "POST",
         }
