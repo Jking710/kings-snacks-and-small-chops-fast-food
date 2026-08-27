@@ -77,6 +77,65 @@ const getKoraSecretKey = () => {
 };
 
 // ============================================================
+// HELPER: CREATE PAYMENT NOTIFICATION
+// ============================================================
+
+const createPaymentNotification = async (order) => {
+  try {
+    if (!order?.user) {
+      console.error("❌ Cannot create payment notification. User missing.");
+
+      return;
+    }
+
+    const orderCode =
+      order.orderCode || `KS-${order._id.toString().slice(-6).toUpperCase()}`;
+
+    // Prevent duplicate payment notifications
+    const existingNotification = await Notification.findOne({
+      user: order.user,
+      type: "payment",
+      "metadata.orderId": order._id,
+    });
+
+    if (existingNotification) {
+      console.log(`ℹ️ Payment notification already exists for ${orderCode}`);
+
+      return;
+    }
+
+    const notification = await Notification.create({
+      user: order.user,
+
+      type: "payment",
+
+      title: "Payment successful 💳",
+
+      message: `Payment successful 💳 Your order ${orderCode} has been confirmed.`,
+
+      link: "/order-history",
+
+      metadata: {
+        orderId: order._id,
+        orderCode,
+        amount: order.totalAmount,
+        paymentMethod: order.paymentMethod,
+      },
+
+      isRead: false,
+
+      readAt: null,
+    });
+
+    console.log(`🔔 Payment notification created for order ${orderCode}`);
+
+    return notification;
+  } catch (error) {
+    console.error("❌ Payment notification creation error:", error);
+  }
+};
+
+// ============================================================
 // INITIALIZE KORA PAYMENT
 // ============================================================
 
@@ -600,6 +659,7 @@ export const verifyKoraPayment = async (req, res) => {
       console.log(`✅ Order ${order.orderCode} marked as PAID`);
     }
 
+    await createPaymentNotification(order);
     // ======================================================
     // RESPONSE
     // ======================================================
@@ -893,6 +953,7 @@ export const handleKoraWebhook = async (req, res) => {
       console.log(`ℹ️ Order ${order.orderCode} is already PAID`);
     }
 
+    await createPaymentNotification(order);
     // ======================================================
     // ACKNOWLEDGE KORA
     // ======================================================
@@ -991,13 +1052,13 @@ export const handleKoraCallback = async (req, res) => {
     // ======================================================
 
     if (order.paymentStatus === "paid") {
-      console.log("✅ Webhook already marked order as PAID");
+      console.log("✅ Order is already marked as PAID");
+
+      await createPaymentNotification(order);
 
       return redirectToFrontend(res, {
         payment: "success",
-
         orderId: order._id,
-
         orderCode: order.orderCode,
       });
     }
@@ -1142,30 +1203,20 @@ export const handleKoraCallback = async (req, res) => {
     // ======================================================
 
     order.paymentStatus = "paid";
+    
+    order.paymentStatus = "paid";
 
-    try {
-      await Notification.create({
-        user: order.user,
-        type: "payment",
-        title: "Payment successful 💳",
-        message: `Payment successful 💳 Your order ${
-          order.orderCode ||
-          `KS-${order._id.toString().slice(-6).toUpperCase()}`
-        } has been confirmed.`,
-        link: "/order-history",
-        metadata: {
-          orderId: order._id,
-          orderCode:
-            order.orderCode ||
-            `KS-${order._id.toString().slice(-6).toUpperCase()}`,
-          amount: order.totalAmount,
-          paymentMethod: order.paymentMethod,
-        },
-        isRead: false,
-      });
-    } catch (notificationError) {
-      console.error("Payment notification error:", notificationError);
-    }
+    order.paymentReference = payment?.payment_reference || reference;
+
+    order.paidAt = new Date();
+
+    order.orderStatus = "pending";
+
+    await order.save();
+
+    console.log(`✅ Callback marked order ${order.orderCode} as PAID`);
+
+    await createPaymentNotification(order);
 
     order.paymentReference = payment?.payment_reference || reference;
 
