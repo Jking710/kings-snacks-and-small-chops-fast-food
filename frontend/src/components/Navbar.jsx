@@ -14,11 +14,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-import {
-  Link,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useCart } from "../CartContext.jsx";
 import { useAuth } from "../AuthContext.jsx";
@@ -34,15 +30,12 @@ function Navbar() {
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const [notificationOpen, setNotificationOpen] =
-    useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
-  const [notificationPopup, setNotificationPopup] =
-    useState(null);
+  const [notificationPopup, setNotificationPopup] = useState(null);
 
   // Controls Special Features dropdown
-  const [specialFeaturesOpen, setSpecialFeaturesOpen] =
-    useState(false);
+  const [specialFeaturesOpen, setSpecialFeaturesOpen] = useState(false);
 
   const notificationRef = useRef(null);
 
@@ -54,16 +47,9 @@ function Navbar() {
 
   const { totalItems } = useCart();
 
-  const {
-    isAuthenticated,
-    user,
-    logout,
-  } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
 
-  const {
-    unreadCount,
-    fetchNotifications,
-  } = useNotifications();
+  const { unreadCount, fetchNotifications } = useNotifications();
 
   const location = useLocation();
 
@@ -78,16 +64,10 @@ function Navbar() {
       setHeader(window.scrollY > 50);
     };
 
-    window.addEventListener(
-      "scroll",
-      handleScroll
-    );
+    window.addEventListener("scroll", handleScroll);
 
     return () => {
-      window.removeEventListener(
-        "scroll",
-        handleScroll
-      );
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -110,42 +90,27 @@ function Navbar() {
     const handleClickOutside = (event) => {
       if (
         notificationRef.current &&
-        !notificationRef.current.contains(
-          event.target
-        )
+        !notificationRef.current.contains(event.target)
       ) {
         setNotificationOpen(false);
       }
 
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(
-          event.target
-        )
-      ) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
       }
 
       if (
         specialFeaturesRef.current &&
-        !specialFeaturesRef.current.contains(
-          event.target
-        )
+        !specialFeaturesRef.current.contains(event.target)
       ) {
         setSpecialFeaturesOpen(false);
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleClickOutside
-    );
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -163,69 +128,43 @@ function Navbar() {
 
     const loadUserNotifications = async () => {
       try {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 500)
-        );
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         if (cancelled) return;
 
-        const list =
-          await fetchNotifications();
+        const list = await fetchNotifications();
 
-        if (
-          cancelled ||
-          !Array.isArray(list) ||
-          list.length === 0
-        ) {
+        if (cancelled || !Array.isArray(list) || list.length === 0) {
           return;
         }
 
-        const newestUnread =
-          list.find(
-            (notification) =>
-              !notification.isRead
-          );
+        const newestUnread = list.find((notification) => !notification.isRead);
 
         if (!newestUnread) {
           return;
         }
 
-        const notificationId =
-          newestUnread._id;
+        const notificationId = newestUnread._id;
 
-        const shownKey =
-          `kings-chops-notification-${notificationId}`;
+        const shownKey = `kings-chops-notification-${notificationId}`;
 
-        if (
-          sessionStorage.getItem(shownKey)
-        ) {
+        if (sessionStorage.getItem(shownKey)) {
           return;
         }
 
-        sessionStorage.setItem(
-          shownKey,
-          "true"
-        );
+        sessionStorage.setItem(shownKey, "true");
 
-        setNotificationPopup(
-          newestUnread
-        );
+        setNotificationPopup(newestUnread);
 
         if (popupTimerRef.current) {
-          clearTimeout(
-            popupTimerRef.current
-          );
+          clearTimeout(popupTimerRef.current);
         }
 
-        popupTimerRef.current =
-          setTimeout(() => {
-            setNotificationPopup(null);
-          }, 6000);
+        popupTimerRef.current = setTimeout(() => {
+          setNotificationPopup(null);
+        }, 6000);
       } catch (error) {
-        console.error(
-          "Failed to load login notification:",
-          error
-        );
+        console.error("Failed to load login notification:", error);
       }
     };
 
@@ -235,24 +174,16 @@ function Navbar() {
       cancelled = true;
 
       if (popupTimerRef.current) {
-        clearTimeout(
-          popupTimerRef.current
-        );
+        clearTimeout(popupTimerRef.current);
       }
     };
-  }, [
-    isAuthenticated,
-    user,
-    fetchNotifications,
-  ]);
+  }, [isAuthenticated, user, fetchNotifications]);
 
   // ─────────────────────────────────────────────
   // PROTECTED NAVIGATION
   // ─────────────────────────────────────────────
 
-  const handleProtectedNavigation = (
-    path
-  ) => {
+  const handleProtectedNavigation = (path) => {
     setSpecialFeaturesOpen(false);
     setMobileNavOpen(false);
 
@@ -291,9 +222,7 @@ function Navbar() {
       return;
     }
 
-    setSpecialFeaturesOpen(
-      (previous) => !previous
-    );
+    setSpecialFeaturesOpen((previous) => !previous);
   };
 
   // ─────────────────────────────────────────────
@@ -320,8 +249,7 @@ function Navbar() {
   // ACTIVE LINK
   // ─────────────────────────────────────────────
 
-  const isActive = (path) =>
-    location.pathname === path;
+  const isActive = (path) => location.pathname === path;
 
   // ─────────────────────────────────────────────
   // NAVIGATION LINKS
@@ -361,9 +289,7 @@ function Navbar() {
   return (
     <header
       className={`w-full relative z-50 bg-[#f6eee8] border-b border-[#ead9cd] transition-all selection:transparent selection:text-current ${
-        header
-          ? "py-3 bg-[#fffdfb] shadow-lg"
-          : "py-5"
+        header ? "py-3 bg-[#fffdfb] shadow-lg" : "py-5"
       }`}
     >
       {/* ======================================================
@@ -386,19 +312,13 @@ function Navbar() {
                     </p>
 
                     <h3 className="font-bold text-gray-800 mt-1">
-                      {
-                        notificationPopup.title
-                      }
+                      {notificationPopup.title}
                     </h3>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setNotificationPopup(
-                        null
-                      )
-                    }
+                    onClick={() => setNotificationPopup(null)}
                     className="text-gray-400 hover:text-gray-700 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
@@ -406,21 +326,15 @@ function Navbar() {
                 </div>
 
                 <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                  {
-                    notificationPopup.message
-                  }
+                  {notificationPopup.message}
                 </p>
 
                 <Link
                   to={
                     notificationPopup.link ||
-                    "/notifications"
+                    `/notifications/${notificationPopup._id}`
                   }
-                  onClick={() =>
-                    setNotificationPopup(
-                      null
-                    )
-                  }
+                  onClick={() => setNotificationPopup(null)}
                   className="inline-block mt-3 text-sm font-semibold text-[#8b563b] hover:text-[#5a3825]"
                 >
                   View notification
@@ -436,24 +350,18 @@ function Navbar() {
       )}
 
       <div className="max-w-7xl mx-auto px-4 md:px-10">
-
         {/* ======================================================
             MOBILE NAV
         ====================================================== */}
 
         <div className="flex md:hidden justify-between items-center">
-          <Link
-            to="/"
-            className="font-semibold flex gap-1 items-center"
-          >
+          <Link to="/" className="font-semibold flex gap-1 items-center">
             <div className="text-[#8b563b] text-2xl">
               <FontAwesomeIcon icon={faCrown} />
             </div>
 
             <h2 className="font-['Georgia'] font-bold text-xl">
-              <span className="hover:text-[#8b563b]">
-                Kings
-              </span>
+              <span className="hover:text-[#8b563b]">Kings</span>
 
               <span className="text-[#8b563b] ml-1.5 hover:text-[#3b2418]">
                 Chops
@@ -477,11 +385,7 @@ function Navbar() {
 
             <button
               type="button"
-              onClick={() =>
-                setMobileNavOpen(
-                  (previous) => !previous
-                )
-              }
+              onClick={() => setMobileNavOpen((previous) => !previous)}
               className="cursor-pointer text-gray-700 hover:text-[#8b563b] transition-colors"
             >
               {mobileNavOpen ? (
@@ -499,17 +403,12 @@ function Navbar() {
 
         {mobileNavOpen && (
           <ul className="md:hidden p-4 bg-[#f6eee8] rounded-b-xl font-semibold text-lg mt-1 flex flex-col gap-1 text-center border-t border-[#ead9cd]">
-
             {navLinks.map((link) => (
               <li key={link.to}>
                 {link.protected ? (
                   <button
                     type="button"
-                    onClick={() =>
-                      handleProtectedNavigation(
-                        link.to
-                      )
-                    }
+                    onClick={() => handleProtectedNavigation(link.to)}
                     className={`w-full block py-2 px-4 rounded-lg transition-all ${
                       isActive(link.to)
                         ? "bg-[#7a4a2d] text-white"
@@ -538,66 +437,49 @@ function Navbar() {
             <li className="mt-1">
               <button
                 type="button"
-                onClick={() =>
-                  handleSpecialFeaturesClick()
-                }
+                onClick={() => handleSpecialFeaturesClick()}
                 className="w-full py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd] cursor-pointer"
               >
                 Special Features
               </button>
 
-              {isAuthenticated &&
-                specialFeaturesOpen && (
-                  <div className="flex flex-col gap-1 mt-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleProtectedNavigation(
-                          "/build-snack-box"
-                        )
-                      }
-                      className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
-                    >
-                      Build Your Snack Box
-                    </button>
+              {isAuthenticated && specialFeaturesOpen && (
+                <div className="flex flex-col gap-1 mt-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleProtectedNavigation("/build-snack-box")
+                    }
+                    className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
+                  >
+                    Build Your Snack Box
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleProtectedNavigation(
-                          "/smart-budget"
-                        )
-                      }
-                      className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
-                    >
-                      Smart Budget
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => handleProtectedNavigation("/smart-budget")}
+                    className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
+                  >
+                    Smart Budget
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleProtectedNavigation(
-                          "/group-ordering"
-                        )
-                      }
-                      className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
-                    >
-                      Group Ordering
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => handleProtectedNavigation("/group-ordering")}
+                    className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
+                  >
+                    Group Ordering
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleProtectedNavigation(
-                          "/surprise-me"
-                        )
-                      }
-                      className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
-                    >
-                      Surprise Me Order
-                    </button>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => handleProtectedNavigation("/surprise-me")}
+                    className="block py-2 px-4 rounded-lg hover:text-[#8b563b] hover:bg-[#ead9cd]"
+                  >
+                    Surprise Me Order
+                  </button>
+                </div>
+              )}
             </li>
 
             {isAuthenticated ? (
@@ -628,12 +510,9 @@ function Navbar() {
                   >
                     <Bell size={19} />
                     Notifications
-
                     {unreadCount > 0 && (
                       <span className="bg-[#9a5f3d] text-white text-xs min-w-5 h-5 px-1 rounded-full flex items-center justify-center">
-                        {unreadCount > 99
-                          ? "99+"
-                          : unreadCount}
+                        {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
                     )}
                   </Link>
@@ -667,19 +546,13 @@ function Navbar() {
         ====================================================== */}
 
         <div className="hidden md:flex justify-between items-center">
-
-          <Link
-            to="/"
-            className="font-semibold flex gap-1 items-center"
-          >
+          <Link to="/" className="font-semibold flex gap-1 items-center">
             <div className="text-[#8b563b] text-3xl">
               <FontAwesomeIcon icon={faCrown} />
             </div>
 
             <h2 className="font-['Georgia'] font-bold text-2xl">
-              <span className="hover:text-[#8b563b]">
-                Kings
-              </span>
+              <span className="hover:text-[#8b563b]">Kings</span>
 
               <span className="text-[#8b563b] ml-1.5 hover:text-[#3b2418]">
                 Chops
@@ -688,9 +561,7 @@ function Navbar() {
           </Link>
 
           <div className="flex items-center gap-x-6">
-
             <ul className="flex items-center cursor-pointer gap-6 text-[#3b2418] font-semibold">
-
               {/* HOME, MENU, ABOUT, CONTACT */}
 
               {navLinks.map((link) => (
@@ -698,11 +569,7 @@ function Navbar() {
                   {link.protected ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        handleProtectedNavigation(
-                          link.to
-                        )
-                      }
+                      onClick={() => handleProtectedNavigation(link.to)}
                       className={`transition-all px-2 py-1 rounded-md cursor-pointer ${
                         isActive(link.to)
                           ? "text-[#8b563b] bg-[#f6eee8]"
@@ -730,125 +597,92 @@ function Navbar() {
                   SPECIAL FEATURES
               ================================================== */}
 
-              <li
-                ref={specialFeaturesRef}
-                className="relative"
-              >
+              <li ref={specialFeaturesRef} className="relative">
                 <button
                   type="button"
-                  onClick={
-                    handleSpecialFeaturesClick
-                  }
+                  onClick={handleSpecialFeaturesClick}
                   className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
-                    isActive(
-                      "/build-snack-box"
-                    ) ||
-                    isActive(
-                      "/smart-budget"
-                    ) ||
-                    isActive(
-                      "/group-ordering"
-                    ) ||
-                    isActive(
-                      "/surprise-me"
-                    )
+                    isActive("/build-snack-box") ||
+                    isActive("/smart-budget") ||
+                    isActive("/group-ordering") ||
+                    isActive("/surprise-me")
                       ? "text-[#8b563b] bg-[#f6eee8]"
                       : "hover:text-[#8b563b] hover:bg-black/5"
                   }`}
                 >
                   Special Features
-
                   <ChevronDown
                     className={`w-4 h-4 transition-transform duration-200 ${
-                      specialFeaturesOpen
-                        ? "rotate-180"
-                        : ""
+                      specialFeaturesOpen ? "rotate-180" : ""
                     }`}
                   />
                 </button>
 
-                {isAuthenticated &&
-                  specialFeaturesOpen && (
-                    <div className="absolute left-0 top-full pt-3 w-64 z-50">
-                      <div className="bg-white border border-[#ead9cd] rounded-xl shadow-xl overflow-hidden">
+                {isAuthenticated && specialFeaturesOpen && (
+                  <div className="absolute left-0 top-full pt-3 w-64 z-50">
+                    <div className="bg-white border border-[#ead9cd] rounded-xl shadow-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleProtectedNavigation("/build-snack-box")
+                        }
+                        className="w-full text-left block px-4 py-4 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
+                      >
+                        <p className="font-bold text-sm">
+                          Build Your Snack Box
+                        </p>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleProtectedNavigation(
-                              "/build-snack-box"
-                            )
-                          }
-                          className="w-full text-left block px-4 py-4 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                        >
-                          <p className="font-bold text-sm">
-                            Build Your Snack Box
-                          </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Create your own snack box.
+                        </p>
+                      </button>
 
-                          <p className="text-xs text-gray-400 mt-1">
-                            Create your own snack box.
-                          </p>
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleProtectedNavigation("/smart-budget")
+                        }
+                        className="w-full text-left block px-4 py-4 border-t border-gray-100 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
+                      >
+                        <p className="font-bold text-sm">Smart Budget</p>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleProtectedNavigation(
-                              "/smart-budget"
-                            )
-                          }
-                          className="w-full text-left block px-4 py-4 border-t border-gray-100 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                        >
-                          <p className="font-bold text-sm">
-                            Smart Budget
-                          </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Find snacks within your budget.
+                        </p>
+                      </button>
 
-                          <p className="text-xs text-gray-400 mt-1">
-                            Find snacks within your budget.
-                          </p>
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleProtectedNavigation("/group-ordering")
+                        }
+                        className="w-full text-left block px-4 py-4 border-t border-gray-100 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
+                      >
+                        <p className="font-bold text-sm">Group Ordering</p>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleProtectedNavigation(
-                              "/group-ordering"
-                            )
-                          }
-                          className="w-full text-left block px-4 py-4 border-t border-gray-100 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                        >
-                          <p className="font-bold text-sm">
-                            Group Ordering
-                          </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Order snacks with friends.
+                        </p>
+                      </button>
 
-                          <p className="text-xs text-gray-400 mt-1">
-                            Order snacks with friends.
-                          </p>
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleProtectedNavigation("/surprise-me")
+                        }
+                        className="w-full text-left block px-4 py-4 border-t border-gray-100 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
+                      >
+                        <p className="font-bold text-sm">Surprise Me Order</p>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleProtectedNavigation(
-                              "/surprise-me"
-                            )
-                          }
-                          className="w-full text-left block px-4 py-4 border-t border-gray-100 text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                        >
-                          <p className="font-bold text-sm">
-                            Surprise Me Order
-                          </p>
-
-                          <p className="text-xs text-gray-400 mt-1">
-                            Having trouble ordering? Don't worry, we got you covered.
-                          </p>
-                        </button>
-
-                      </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Having trouble ordering? Don't worry, we got you
+                          covered.
+                        </p>
+                      </button>
                     </div>
-                  )}
+                  </div>
+                )}
               </li>
-
             </ul>
 
             {/* CART */}
@@ -870,32 +704,21 @@ function Navbar() {
 
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2">
-
                 {/* PROFILE */}
 
-                <div
-                  ref={userMenuRef}
-                  className="relative"
-                >
+                <div ref={userMenuRef} className="relative">
                   <button
                     type="button"
                     onClick={() => {
-                      setUserMenuOpen(
-                        (previous) =>
-                          !previous
-                      );
+                      setUserMenuOpen((previous) => !previous);
 
-                      setNotificationOpen(
-                        false
-                      );
+                      setNotificationOpen(false);
                     }}
                     className="flex items-center gap-2 bg-[#f6eee8] border border-[#ead9cd] px-3 py-1.5 rounded-xl hover:bg-[#ead9cd] transition-all cursor-pointer"
                   >
                     {user.profilePicture ? (
                       <img
-                        src={
-                          user.profilePicture
-                        }
+                        src={user.profilePicture}
                         alt={user.firstName}
                         className="w-7 h-7 rounded-full object-cover border border-[#c89576]"
                       />
@@ -911,20 +734,15 @@ function Navbar() {
 
                     <ChevronDown
                       className={`w-4 h-4 text-gray-500 transition-transform ${
-                        userMenuOpen
-                          ? "rotate-180"
-                          : ""
+                        userMenuOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
                   {userMenuOpen && (
                     <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-[#ead9cd] rounded-xl shadow-lg py-2 z-50">
-
                       <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-xs text-gray-500">
-                          Signed in as
-                        </p>
+                        <p className="text-xs text-gray-500">Signed in as</p>
 
                         <p className="text-sm font-semibold text-gray-800 truncate">
                           {user.email}
@@ -933,11 +751,7 @@ function Navbar() {
 
                       <Link
                         to="/profile"
-                        onClick={() =>
-                          setUserMenuOpen(
-                            false
-                          )
-                        }
+                        onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
                       >
                         <User className="w-4 h-4" />
@@ -946,30 +760,19 @@ function Navbar() {
 
                       <Link
                         to="/cart"
-                        onClick={() =>
-                          setUserMenuOpen(
-                            false
-                          )
-                        }
+                        onClick={() => setUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
                       >
                         <ShoppingCart className="w-4 h-4" />
                         My Cart
-                        {totalItems > 0 &&
-                          ` (${totalItems})`}
+                        {totalItems > 0 && ` (${totalItems})`}
                       </Link>
 
                       <Link
                         to="/order-history"
-                        onClick={() =>
-                          setUserMenuOpen(
-                            false
-                          )
-                        }
+                        onClick={() => setUserMenuOpen(false)}
                         className={`flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b] ${
-                          isActive(
-                            "/order-history"
-                          )
+                          isActive("/order-history")
                             ? "bg-[#f6eee8] text-[#8b563b]"
                             : ""
                         }`}
@@ -981,40 +784,29 @@ function Navbar() {
                       <div className="border-t border-gray-100 mt-1 pt-1">
                         <button
                           type="button"
-                          onClick={
-                            handleLogout
-                          }
+                          onClick={handleLogout}
                           className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-[#8b563b] hover:bg-[#f3e1d8] transition-colors cursor-pointer"
                         >
                           <LogOut className="w-4 h-4" />
                           Sign Out
                         </button>
                       </div>
-
                     </div>
                   )}
                 </div>
 
                 {/* NOTIFICATIONS */}
 
-                <div
-                  ref={notificationRef}
-                  className="relative"
-                >
+                <div ref={notificationRef} className="relative">
                   <button
                     type="button"
                     onClick={() => {
-                      setNotificationOpen(
-                        (previous) =>
-                          !previous
-                      );
+                      setNotificationOpen((previous) => !previous);
 
                       setUserMenuOpen(false);
                     }}
                     aria-label="Notifications"
-                    aria-expanded={
-                      notificationOpen
-                    }
+                    aria-expanded={notificationOpen}
                     className={`relative w-10 h-10 flex items-center justify-center rounded-xl border transition-all cursor-pointer ${
                       notificationOpen
                         ? "bg-[#f6eee8] border-[#c89576] text-[#8b563b]"
@@ -1023,32 +815,23 @@ function Navbar() {
                   >
                     <Bell
                       className={`w-5 h-5 ${
-                        unreadCount > 0
-                          ? "animate-pulse"
-                          : ""
+                        unreadCount > 0 ? "animate-pulse" : ""
                       }`}
                     />
 
                     {unreadCount > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 bg-[#9a5f3d] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-                        {unreadCount > 99
-                          ? "99+"
-                          : unreadCount}
+                        {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
                     )}
                   </button>
 
                   {notificationOpen && (
                     <NotificationDropdown
-                      onClose={() =>
-                        setNotificationOpen(
-                          false
-                        )
-                      }
+                      onClose={() => setNotificationOpen(false)}
                     />
                   )}
                 </div>
-
               </div>
             ) : (
               <Link
@@ -1058,7 +841,6 @@ function Navbar() {
                 Order Now
               </Link>
             )}
-
           </div>
         </div>
       </div>

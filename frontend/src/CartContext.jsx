@@ -8,12 +8,23 @@ import React, {
 import { CartContext } from "./CartContextData.js";
 import { useAuth } from "./AuthContext.jsx";
 
-export function CartProvider({ children }) {
-  const { isAuthenticated, user } = useAuth();
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
 
-  const [cartItems, setCartItems] = useState([]);
+export function CartProvider({
+  children,
+}) {
+  const {
+    isAuthenticated,
+    user,
+  } = useAuth();
 
-  const previousUserKeyRef = useRef(null);
+  const [cartItems, setCartItems] =
+    useState([]);
+
+  const previousUserKeyRef =
+    useRef(null);
 
   const getUserKey = () => {
     if (!user) return null;
@@ -34,7 +45,6 @@ export function CartProvider({ children }) {
     return `kings-chops-cart-${key}`;
   };
 
-  // Load the user's saved cart whenever the logged-in user changes.
   useEffect(() => {
     if (!isAuthenticated || !userKey) {
       setCartItems([]);
@@ -42,20 +52,28 @@ export function CartProvider({ children }) {
       return;
     }
 
-    // Prevent unnecessary reloads for the same user.
-    if (previousUserKeyRef.current === userKey) {
+    if (
+      previousUserKeyRef.current ===
+      userKey
+    ) {
       return;
     }
 
-    previousUserKeyRef.current = userKey;
+    previousUserKeyRef.current =
+      userKey;
 
-    const storageKey = getStorageKey(userKey);
+    const storageKey =
+      getStorageKey(userKey);
 
     try {
-      const savedCart = localStorage.getItem(storageKey);
+      const savedCart =
+        localStorage.getItem(
+          storageKey
+        );
 
       if (savedCart) {
-        const parsedCart = JSON.parse(savedCart);
+        const parsedCart =
+          JSON.parse(savedCart);
 
         if (Array.isArray(parsedCart)) {
           setCartItems(parsedCart);
@@ -66,18 +84,22 @@ export function CartProvider({ children }) {
         setCartItems([]);
       }
     } catch (error) {
-      console.error("Failed to load saved cart:", error);
+      console.error(
+        "Failed to load saved cart:",
+        error
+      );
+
       setCartItems([]);
     }
   }, [isAuthenticated, userKey]);
 
-  // Save the cart whenever it changes for the logged-in user.
   useEffect(() => {
     if (!isAuthenticated || !userKey) {
       return;
     }
 
-    const storageKey = getStorageKey(userKey);
+    const storageKey =
+      getStorageKey(userKey);
 
     try {
       localStorage.setItem(
@@ -85,55 +107,106 @@ export function CartProvider({ children }) {
         JSON.stringify(cartItems)
       );
     } catch (error) {
-      console.error("Failed to save cart:", error);
+      console.error(
+        "Failed to save cart:",
+        error
+      );
     }
-  }, [cartItems, isAuthenticated, userKey]);
+  }, [
+    cartItems,
+    isAuthenticated,
+    userKey,
+  ]);
+
+  const createCartNotification =
+    async (item) => {
+      try {
+        await fetch(
+          `${API_BASE}/notifications`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              type: "cart",
+              title: "Cart updated 🛒",
+              message: `${item.name} has been added to your cart.`,
+              link: "/cart",
+              metadata: {
+                productId:
+                  item.id ||
+                  item.productId ||
+                  null,
+                productName: item.name,
+              },
+            }),
+          }
+        );
+      } catch (error) {
+        console.error(
+          "Cart notification error:",
+          error
+        );
+      }
+    };
 
   const addToCart = (item) => {
     if (!isAuthenticated || !userKey) {
       return;
     }
 
-    setCartItems((prev) => {
-      const existing = prev.find(
-        (i) => i.id === item.id
-      );
+    setCartItems((previous) => {
+      const existing =
+        previous.find(
+          (i) => i.id === item.id
+        );
 
       if (existing) {
-        return prev.map((i) =>
+        return previous.map((i) =>
           i.id === item.id
             ? {
                 ...i,
-                quantity: i.quantity + 1,
+                quantity:
+                  i.quantity + 1,
               }
             : i
         );
       }
 
       return [
-        ...prev,
+        ...previous,
         {
           ...item,
           quantity: 1,
         },
       ];
     });
+
+    createCartNotification(item);
   };
 
   const removeFromCart = (id) => {
-    setCartItems((prev) =>
-      prev.filter((i) => i.id !== id)
+    setCartItems((previous) =>
+      previous.filter(
+        (i) => i.id !== id
+      )
     );
   };
 
-  const updateQuantity = (id, qty) => {
+  const updateQuantity = (
+    id,
+    qty
+  ) => {
     if (qty < 1) {
       removeFromCart(id);
       return;
     }
 
-    setCartItems((prev) =>
-      prev.map((i) =>
+    setCartItems((previous) =>
+      previous.map((i) =>
         i.id === id
           ? {
               ...i,
@@ -151,25 +224,36 @@ export function CartProvider({ children }) {
       return;
     }
 
-    const storageKey = getStorageKey(userKey);
+    const storageKey =
+      getStorageKey(userKey);
 
     try {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(
+        storageKey
+      );
     } catch (error) {
-      console.error("Failed to clear saved cart:", error);
+      console.error(
+        "Failed to clear saved cart:",
+        error
+      );
     }
   };
 
-  const totalItems = cartItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
+  const totalItems =
+    cartItems.reduce(
+      (sum, item) =>
+        sum + item.quantity,
+      0
+    );
 
-  const totalPrice = cartItems.reduce(
-    (sum, item) =>
-      sum + item.price * item.quantity,
-    0
-  );
+  const totalPrice =
+    cartItems.reduce(
+      (sum, item) =>
+        sum +
+        item.price *
+          item.quantity,
+      0
+    );
 
   return React.createElement(
     CartContext.Provider,

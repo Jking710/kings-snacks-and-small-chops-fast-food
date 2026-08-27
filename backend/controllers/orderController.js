@@ -1,4 +1,45 @@
 import Order from "../models/Order.js";
+import Notification from "../models/Notification.js";
+
+const getOrderStatusNotification = (status, order) => {
+  const orderCode =
+    order.orderCode || `KS-${order._id.toString().slice(-6).toUpperCase()}`;
+
+  switch (status) {
+    case "preparing":
+      return {
+        title: "Your order is being prepared 👨‍🍳",
+        message: `Your order ${orderCode} is now being prepared.`,
+      };
+
+    case "out_for_delivery":
+      return {
+        title: "Your order is out for delivery 🚚",
+        message: `Your order ${orderCode} is out for delivery.`,
+      };
+
+    case "delivered":
+      return {
+        title: "Your order has been delivered 🎉",
+        message: `Your order ${orderCode} has been delivered. Enjoy your meal!`,
+      };
+
+    case "completed":
+      return {
+        title: "Order completed 🎉",
+        message: `Your order ${orderCode} has been completed successfully.`,
+      };
+
+    case "cancelled":
+      return {
+        title: "Order cancelled",
+        message: `Your order ${orderCode} has been cancelled.`,
+      };
+
+    default:
+      return null;
+  }
+};
 
 /*
 ============================================================
@@ -63,9 +104,17 @@ export const createOrder = async (req, res) => {
       });
     }
 
+    const orderCode = `KNG-${new Date()
+      .toISOString()
+      .slice(0, 10)
+      .replace(/-/g, "")}-${Math.random()
+      .toString(36)
+      .slice(2, 8)
+      .toUpperCase()}`;
+
     const order = await Order.create({
       user: req.user._id,
-
+      orderCode,
       items,
 
       subtotal,
@@ -88,6 +137,29 @@ export const createOrder = async (req, res) => {
 
       deliveryConfirmedAt: null,
     });
+
+    try {
+      await Notification.create({
+        user: req.user._id,
+        type: "order",
+        title: "Order placed successfully 🎉",
+        message: `Your order ${
+          order.orderCode ||
+          `KS-${order._id.toString().slice(-6).toUpperCase()}`
+        } has been received and is being processed.`,
+        link: `/order-history`,
+        metadata: {
+          orderId: order._id,
+          orderCode:
+            order.orderCode ||
+            `KS-${order._id.toString().slice(-6).toUpperCase()}`,
+          totalAmount: order.totalAmount,
+        },
+        isRead: false,
+      });
+    } catch (notificationError) {
+      console.error("Order notification error:", notificationError);
+    }
 
     return res.status(201).json({
       success: true,
@@ -389,6 +461,35 @@ export const confirmDelivery = async (req, res) => {
     */
 
     await order.save();
+
+    const previousStatus = order._doc.orderStatus; // Get the previous status before saving
+
+    if (previousStatus !== order.orderStatus) {
+      const notificationData = getOrderStatusNotification(
+        order.orderStatus,
+        order,
+      );
+
+    if (notificationData) {
+      try {
+        await Notification.create({
+          user: order.user,
+          type: "delivery",
+          title: notificationData.title,
+          message: notificationData.message,
+          link: `/order-history`,
+          metadata: {
+            orderId: order._id,
+            orderCode: order.orderCode,
+            orderStatus: order.orderStatus,
+          },
+          isRead: false,
+        });
+      } catch (notificationError) {
+        console.error("Order status notification error:", notificationError);
+      }
+    }
+  };
 
     console.log("✅ Delivery confirmation saved");
 

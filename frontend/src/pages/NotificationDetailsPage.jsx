@@ -1,8 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Bell,
@@ -21,19 +17,13 @@ function NotificationDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const {
-    notifications,
-    markAsRead,
-  } = useNotifications();
+  const { notifications, markAsRead } = useNotifications();
 
-  const [notification, setNotification] =
-    useState(null);
+  const [notification, setNotification] = useState(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   /*
   ============================================================
@@ -44,39 +34,25 @@ function NotificationDetailsPage() {
   const getIcon = (type) => {
     switch (type) {
       case "order":
-        return (
-          <ShoppingBag className="w-7 h-7" />
-        );
+        return <ShoppingBag className="w-7 h-7" />;
 
       case "payment":
-        return (
-          <CreditCard className="w-7 h-7" />
-        );
+        return <CreditCard className="w-7 h-7" />;
 
       case "cart":
-        return (
-          <ShoppingCart className="w-7 h-7" />
-        );
+        return <ShoppingCart className="w-7 h-7" />;
 
       case "delivery":
-        return (
-          <Truck className="w-7 h-7" />
-        );
+        return <Truck className="w-7 h-7" />;
 
       case "welcome":
-        return (
-          <Bell className="w-7 h-7" />
-        );
+        return <Bell className="w-7 h-7" />;
 
       case "login":
-        return (
-          <CheckCheck className="w-7 h-7" />
-        );
+        return <CheckCheck className="w-7 h-7" />;
 
       default:
-        return (
-          <Info className="w-7 h-7" />
-        );
+        return <Info className="w-7 h-7" />;
     }
   };
 
@@ -89,13 +65,10 @@ function NotificationDetailsPage() {
   const getFormattedDate = (date) => {
     if (!date) return "";
 
-    return new Date(date).toLocaleString(
-      "en-NG",
-      {
-        dateStyle: "full",
-        timeStyle: "short",
-      }
-    );
+    return new Date(date).toLocaleString("en-NG", {
+      dateStyle: "full",
+      timeStyle: "short",
+    });
   };
 
   /*
@@ -103,107 +76,25 @@ function NotificationDetailsPage() {
   LOAD NOTIFICATION
   ============================================================
   */
+  const loadNotification = useCallback(async () => {
+    if (!id) {
+      setError("Notification ID is missing.");
+      setLoading(false);
+      return;
+    }
 
-  const loadNotification = useCallback(
-    async () => {
-      if (!id) {
-        setError(
-          "Notification ID is missing."
-        );
+    try {
+      setLoading(true);
+      setError("");
 
-        setLoading(false);
+      const existingNotification = notifications.find(
+        (item) => item._id === id,
+      );
 
-        return;
-      }
+      if (existingNotification) {
+        setNotification(existingNotification);
 
-      try {
-        setLoading(true);
-        setError("");
-
-        /*
-        First check notifications already
-        loaded inside NotificationContext.
-        */
-
-        const existingNotification =
-          notifications.find(
-            (item) =>
-              item._id === id
-          );
-
-        if (existingNotification) {
-          setNotification(
-            existingNotification
-          );
-
-          /*
-          Mark it as read if necessary.
-          */
-
-          if (!existingNotification.isRead) {
-            await markAsRead(id);
-
-            setNotification((current) =>
-              current
-                ? {
-                    ...current,
-                    isRead: true,
-                    readAt:
-                      new Date().toISOString(),
-                  }
-                : current
-            );
-          }
-
-          return;
-        }
-
-        /*
-        If the notification is not already
-        loaded, fetch it directly.
-        */
-
-        const API_BASE =
-          import.meta.env.VITE_API_URL ||
-          "http://localhost:5000/api";
-
-        const response = await fetch(
-          `${API_BASE}/notifications/${id}`,
-          {
-            method: "GET",
-            credentials: "include",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-          }
-        );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to load notification."
-          );
-        }
-
-        if (!data.notification) {
-          throw new Error(
-            "Notification was not found."
-          );
-        }
-
-        setNotification(
-          data.notification
-        );
-
-        /*
-        Mark unread notification as read.
-        */
-
-        if (!data.notification.isRead) {
+        if (!existingNotification.isRead) {
           await markAsRead(id);
 
           setNotification((current) =>
@@ -211,32 +102,59 @@ function NotificationDetailsPage() {
               ? {
                   ...current,
                   isRead: true,
-                  readAt:
-                    new Date().toISOString(),
+                  readAt: new Date().toISOString(),
                 }
-              : current
+              : current,
           );
         }
-      } catch (error) {
-        console.error(
-          "Load notification error:",
-          error
-        );
 
-        setError(
-          error.message ||
-            "Could not load this notification."
-        );
-      } finally {
-        setLoading(false);
+        return;
       }
-    },
-    [
-      id,
-      notifications,
-      markAsRead,
-    ]
-  );
+
+      const API_BASE =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+      const response = await fetch(`${API_BASE}/notifications/${id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load notification.");
+      }
+
+      if (!data.notification) {
+        throw new Error("Notification was not found.");
+      }
+
+      setNotification(data.notification);
+
+      if (!data.notification.isRead) {
+        await markAsRead(id);
+
+        setNotification((current) =>
+          current
+            ? {
+                ...current,
+                isRead: true,
+                readAt: new Date().toISOString(),
+              }
+            : current,
+        );
+      }
+    } catch (error) {
+      console.error("Load notification error:", error);
+
+      setError(error.message || "Could not load this notification.");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, notifications, markAsRead]);
 
   /*
   ============================================================
@@ -259,13 +177,11 @@ function NotificationDetailsPage() {
       <div className="min-h-screen bg-[#fffaf7] px-4 py-10 md:px-10">
         <div className="max-w-3xl mx-auto">
           <div className="bg-white border border-[#ead9cd] rounded-2xl p-12 text-center">
-
             <div className="w-9 h-9 mx-auto border-2 border-[#ead9cd] border-t-[#8b563b] rounded-full animate-spin" />
 
             <p className="text-sm text-gray-500 mt-4">
               Loading notification...
             </p>
-
           </div>
         </div>
       </div>
@@ -282,12 +198,9 @@ function NotificationDetailsPage() {
     return (
       <div className="min-h-screen bg-[#fffaf7] px-4 py-10 md:px-10">
         <div className="max-w-3xl mx-auto">
-
           <button
             type="button"
-            onClick={() =>
-              navigate("/notifications")
-            }
+            onClick={() => navigate("/notifications")}
             className="flex items-center gap-2 text-sm font-semibold text-[#8b563b] hover:text-[#5a3825] transition cursor-pointer mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -295,7 +208,6 @@ function NotificationDetailsPage() {
           </button>
 
           <div className="bg-white border border-[#ead9cd] rounded-2xl p-10 text-center">
-
             <div className="w-16 h-16 mx-auto rounded-full bg-[#f6eee8] flex items-center justify-center">
               <Bell className="w-8 h-8 text-[#8b563b]" />
             </div>
@@ -311,14 +223,11 @@ function NotificationDetailsPage() {
 
             <button
               type="button"
-              onClick={() =>
-                navigate("/notifications")
-              }
+              onClick={() => navigate("/notifications")}
               className="mt-6 px-5 py-2.5 rounded-xl bg-[#7a4a2d] text-white text-sm font-semibold hover:bg-[#5a3825] transition cursor-pointer"
             >
               View notifications
             </button>
-
           </div>
         </div>
       </div>
@@ -333,16 +242,12 @@ function NotificationDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#fffaf7] px-4 py-10 md:px-10">
-
       <div className="max-w-3xl mx-auto">
-
         {/* BACK BUTTON */}
 
         <button
           type="button"
-          onClick={() =>
-            navigate("/notifications")
-          }
+          onClick={() => navigate("/notifications")}
           className="flex items-center gap-2 text-sm font-semibold text-[#8b563b] hover:text-[#5a3825] transition cursor-pointer mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -352,35 +257,24 @@ function NotificationDetailsPage() {
         {/* NOTIFICATION CARD */}
 
         <div className="bg-white border border-[#ead9cd] rounded-2xl overflow-hidden shadow-sm">
-
           {/* HEADER */}
 
           <div className="px-6 py-6 md:px-8 border-b border-[#ead9cd] bg-[#fffaf7]">
-
             <div className="flex items-start gap-4">
-
               <div className="w-14 h-14 rounded-2xl bg-[#f6eee8] text-[#8b563b] flex items-center justify-center shrink-0">
-                {getIcon(
-                  notification.type
-                )}
+                {getIcon(notification.type)}
               </div>
 
               <div className="flex-1 min-w-0">
-
                 <div className="flex items-start justify-between gap-4">
-
                   <div>
-
                     <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                       {notification.title}
                     </h1>
 
                     <p className="text-sm text-gray-500 mt-2">
-                      {getFormattedDate(
-                        notification.createdAt
-                      )}
+                      {getFormattedDate(notification.createdAt)}
                     </p>
-
                   </div>
 
                   {notification.isRead && (
@@ -389,19 +283,14 @@ function NotificationDetailsPage() {
                       Read
                     </span>
                   )}
-
                 </div>
-
               </div>
-
             </div>
-
           </div>
 
           {/* CONTENT */}
 
           <div className="px-6 py-8 md:px-8">
-
             <p className="text-base leading-7 text-gray-600 whitespace-pre-line">
               {notification.message}
             </p>
@@ -409,48 +298,32 @@ function NotificationDetailsPage() {
             {/* METADATA */}
 
             {notification.metadata &&
-              Object.keys(
-                notification.metadata
-              ).length > 0 && (
+              Object.keys(notification.metadata).length > 0 && (
                 <div className="mt-8 p-5 rounded-xl bg-[#fffaf7] border border-[#ead9cd]">
-
                   <h2 className="text-sm font-bold text-gray-800 mb-4">
                     Details
                   </h2>
 
                   <div className="space-y-3">
-
-                    {Object.entries(
-                      notification.metadata
-                    ).map(
+                    {Object.entries(notification.metadata).map(
                       ([key, value]) => (
                         <div
                           key={key}
                           className="flex items-start justify-between gap-4 text-sm"
                         >
                           <span className="text-gray-500 capitalize">
-                            {key.replace(
-                              /([A-Z])/g,
-                              " $1"
-                            )}
+                            {key.replace(/([A-Z])/g, " $1")}
                           </span>
 
                           <span className="font-medium text-gray-800 text-right break-all">
-                            {typeof value ===
-                            "object"
-                              ? JSON.stringify(
-                                  value
-                                )
-                              : String(
-                                  value
-                                )}
+                            {typeof value === "object"
+                              ? JSON.stringify(value)
+                              : String(value)}
                           </span>
                         </div>
-                      )
+                      ),
                     )}
-
                   </div>
-
                 </div>
               )}
 
@@ -460,38 +333,28 @@ function NotificationDetailsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  navigate(
-                    notification.link
-                  );
+                  navigate(notification.link);
                 }}
                 className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7a4a2d] text-white text-sm font-semibold hover:bg-[#5a3825] transition cursor-pointer"
               >
                 View related activity
               </button>
             )}
-
           </div>
 
           {/* FOOTER */}
 
           <div className="px-6 py-4 md:px-8 border-t border-gray-100 bg-[#fffaf7]">
-
             <div className="flex items-center gap-2 text-xs text-gray-500">
-
               <CheckCheck className="w-4 h-4 text-[#8b563b]" />
 
               {notification.isRead
                 ? "You have read this notification."
                 : "This notification has been marked as read."}
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

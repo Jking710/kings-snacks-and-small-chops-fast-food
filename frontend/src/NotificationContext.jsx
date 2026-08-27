@@ -3,248 +3,144 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./AuthContext.jsx";
 
-const NotificationContext = createContext();
+const NotificationContext =
+  createContext(null);
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
 
-const NOTIFICATION_API = `${API_BASE}/notifications`;
+export function NotificationProvider({
+  children,
+}) {
+  const { isAuthenticated } = useAuth();
 
-function NotificationProvider({ children }) {
-  const { user, loading: authLoading } = useAuth();
+  const [notifications, setNotifications] =
+    useState([]);
 
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [unreadCount, setUnreadCount] =
+    useState(0);
 
-  /*
-  ============================================================
-  API REQUEST HELPER
-  ============================================================
-  */
+  const [loading, setLoading] =
+    useState(false);
 
-  const apiFetch = useCallback(async (url, options = {}) => {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {}),
-        },
-      });
+  const [error, setError] =
+    useState("");
 
-      let data = {};
-
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
-
-      if (!response.ok) {
-        console.error("Notification API error:", {
-          status: response.status,
-          url,
-          data,
-        });
-
-        const message =
-          data?.message ||
-          `Notification request failed with status ${response.status}`;
-
-        throw new Error(message);
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Notification request failed:", error);
-      throw error;
-    }
-  }, []);
-
-  /*
-  ============================================================
-  GET ALL NOTIFICATIONS
-  ============================================================
-  */
-
-  const fetchNotifications = useCallback(async () => {
-    if (!user) {
-      setNotifications([]);
-      setUnreadCount(0);
-      return [];
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log(
-        "Fetching notifications from:",
-        `${NOTIFICATION_API}`
-      );
-
-      const data = await apiFetch(NOTIFICATION_API);
-
-      const notificationList = Array.isArray(data?.notifications)
-        ? data.notifications
-        : [];
-
-      setNotifications(notificationList);
-
-      const unread = notificationList.filter(
-        (notification) => !notification.isRead
-      ).length;
-
-      setUnreadCount(unread);
-
-      return notificationList;
-    } catch (error) {
-      console.error(
-        "Failed to fetch notifications:",
-        error
-      );
-
-      setError(error.message);
-
-      setNotifications([]);
-      setUnreadCount(0);
-
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [user, apiFetch]);
-
-  /*
-  ============================================================
-  GET UNREAD COUNT
-  ============================================================
-  */
-
-  const fetchUnreadCount = useCallback(async () => {
-    if (!user) {
-      setUnreadCount(0);
-      return 0;
-    }
-
-    try {
-      const data = await apiFetch(
-        `${NOTIFICATION_API}/unread-count`
-      );
-
-      const count =
-        typeof data?.unreadCount === "number"
-          ? data.unreadCount
-          : 0;
-
-      setUnreadCount(count);
-
-      return count;
-    } catch (error) {
-      console.error(
-        "Failed to fetch unread notification count:",
-        error
-      );
-
-      return 0;
-    }
-  }, [user, apiFetch]);
-
-  /*
-  ============================================================
-  CREATE NOTIFICATION
-  ============================================================
-  */
-
-  const createNotification = useCallback(
-    async ({
-      type = "general",
-      title,
-      message,
-      link = "",
-      metadata = {},
-    }) => {
-      if (!user) {
-        throw new Error("You must be logged in.");
-      }
-
-      if (!title || !message) {
-        throw new Error(
-          "Notification title and message are required."
-        );
+  const fetchNotifications =
+    useCallback(async () => {
+      if (!isAuthenticated) {
+        setNotifications([]);
+        setUnreadCount(0);
+        return [];
       }
 
       try {
-        const data = await apiFetch(NOTIFICATION_API, {
-          method: "POST",
-          body: JSON.stringify({
-            type,
-            title,
-            message,
-            link,
-            metadata,
-          }),
-        });
+        setLoading(true);
+        setError("");
 
-        if (data?.notification) {
-          setNotifications((previous) => [
-            data.notification,
-            ...previous,
-          ]);
-
-          setUnreadCount((previous) => previous + 1);
-        }
-
-        return data?.notification || null;
-      } catch (error) {
-        console.error(
-          "Failed to create notification:",
-          error
-        );
-
-        throw error;
-      }
-    },
-    [user, apiFetch]
-  );
-
-  /*
-  ============================================================
-  MARK ONE AS READ
-  ============================================================
-  */
-
-  const markAsRead = useCallback(
-    async (notificationId) => {
-      if (!notificationId) return;
-
-      try {
-        const data = await apiFetch(
-          `${NOTIFICATION_API}/${notificationId}/read`,
+        const response = await fetch(
+          `${API_BASE}/notifications`,
           {
-            method: "PATCH",
+            method: "GET",
+            credentials: "include",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
           }
         );
 
-        const updatedNotification = data?.notification;
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Failed to fetch notifications"
+          );
+        }
+
+        const list = Array.isArray(
+          data.notifications
+        )
+          ? data.notifications
+          : [];
+
+        setNotifications(list);
+
+        setUnreadCount(
+          typeof data.unreadCount === "number"
+            ? data.unreadCount
+            : list.filter(
+                (item) => !item.isRead
+              ).length
+        );
+
+        return list;
+      } catch (error) {
+        console.error(
+          "Fetch notifications error:",
+          error
+        );
+
+        setError(
+          error.message ||
+            "Failed to fetch notifications"
+        );
+
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    }, [isAuthenticated]);
+
+  const markAsRead = useCallback(
+    async (id) => {
+      if (!isAuthenticated || !id) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${API_BASE}/notifications/${id}/read`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Failed to mark notification as read"
+          );
+        }
 
         setNotifications((previous) =>
-          previous.map((notification) =>
-            notification._id === notificationId
-              ? updatedNotification || {
-                  ...notification,
+          previous.map((item) =>
+            item._id === id
+              ? {
+                  ...item,
                   isRead: true,
-                  readAt: new Date().toISOString(),
+                  readAt:
+                    data.notification?.readAt ||
+                    new Date().toISOString(),
                 }
-              : notification
+              : item
           )
         );
 
@@ -252,237 +148,135 @@ function NotificationProvider({ children }) {
           Math.max(0, previous - 1)
         );
 
-        return updatedNotification;
+        return data.notification;
       } catch (error) {
         console.error(
-          "Failed to mark notification as read:",
+          "Mark notification as read error:",
           error
         );
 
         throw error;
       }
     },
-    [apiFetch]
+    [isAuthenticated]
   );
 
-  /*
-  ============================================================
-  MARK ALL AS READ
-  ============================================================
-  */
-
-  const markAllAsRead = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      await apiFetch(`${NOTIFICATION_API}/read-all`, {
-        method: "PATCH",
-      });
-
-      setNotifications((previous) =>
-        previous.map((notification) => ({
-          ...notification,
-          isRead: true,
-          readAt:
-            notification.readAt ||
-            new Date().toISOString(),
-        }))
-      );
-
-      setUnreadCount(0);
-    } catch (error) {
-      console.error(
-        "Failed to mark all notifications as read:",
-        error
-      );
-
-      throw error;
-    }
-  }, [user, apiFetch]);
-
-  /*
-  ============================================================
-  DELETE ONE
-  ============================================================
-  */
-
-  const deleteNotification = useCallback(
-    async (notificationId) => {
-      if (!notificationId) return;
+  const markAllAsRead =
+    useCallback(async () => {
+      if (!isAuthenticated) {
+        return;
+      }
 
       try {
-        await apiFetch(
-          `${NOTIFICATION_API}/${notificationId}`,
+        const response = await fetch(
+          `${API_BASE}/notifications/read-all`,
           {
-            method: "DELETE",
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
           }
         );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Failed to mark all notifications as read"
+          );
+        }
+
+        const readAt =
+          new Date().toISOString();
 
         setNotifications((previous) =>
-          previous.filter(
-            (notification) =>
-              notification._id !== notificationId
-          )
+          previous.map((item) => ({
+            ...item,
+            isRead: true,
+            readAt:
+              item.readAt || readAt,
+          }))
         );
 
-        setUnreadCount((previous) => {
-          const deletedNotification =
-            notifications.find(
-              (notification) =>
-                notification._id === notificationId
-            );
+        setUnreadCount(0);
 
-          if (
-            deletedNotification &&
-            !deletedNotification.isRead
-          ) {
-            return Math.max(0, previous - 1);
-          }
-
-          return previous;
-        });
+        return data;
       } catch (error) {
         console.error(
-          "Failed to delete notification:",
+          "Mark all notifications as read error:",
           error
         );
 
         throw error;
       }
-    },
-    [apiFetch, notifications]
-  );
+    }, [isAuthenticated]);
 
-  /*
-  ============================================================
-  DELETE ALL
-  ============================================================
-  */
-
-  const deleteAllNotifications = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      await apiFetch(NOTIFICATION_API, {
-        method: "DELETE",
-      });
-
-      setNotifications([]);
-      setUnreadCount(0);
-    } catch (error) {
-      console.error(
-        "Failed to delete all notifications:",
-        error
-      );
-
-      throw error;
-    }
-  }, [user, apiFetch]);
-
-  /*
-  ============================================================
-  GET SINGLE NOTIFICATION
-  ============================================================
-  */
-
-  const getNotificationById = useCallback(
-    async (notificationId) => {
-      if (!notificationId) return null;
-
-      try {
-        const data = await apiFetch(
-          `${NOTIFICATION_API}/${notificationId}`
-        );
-
-        return data?.notification || null;
-      } catch (error) {
-        console.error(
-          "Failed to get notification:",
-          error
-        );
-
-        throw error;
-      }
-    },
-    [apiFetch]
-  );
-
-  /*
-  ============================================================
-  LOAD NOTIFICATIONS AFTER LOGIN
-  ============================================================
-  */
+  const refreshNotifications =
+    useCallback(async () => {
+      return fetchNotifications();
+    }, [fetchNotifications]);
 
   useEffect(() => {
-    if (authLoading) return;
-
-    if (!user) {
+    if (!isAuthenticated) {
       setNotifications([]);
       setUnreadCount(0);
+      setError("");
       return;
     }
 
     fetchNotifications();
+
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 5000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, [
-    user,
-    authLoading,
+    isAuthenticated,
     fetchNotifications,
   ]);
 
-  /*
-  ============================================================
-  REFRESH NOTIFICATIONS
-  ============================================================
-  */
-
-  const refreshNotifications = useCallback(async () => {
-    if (!user) return;
-
-    await fetchNotifications();
-  }, [user, fetchNotifications]);
-
-  /*
-  ============================================================
-  CONTEXT VALUE
-  ============================================================
-  */
-
-  const value = {
-    notifications,
-    unreadCount,
-    loading,
-    error,
-
-    fetchNotifications,
-    fetchUnreadCount,
-    refreshNotifications,
-
-    createNotification,
-
-    markAsRead,
-    markAllAsRead,
-
-    deleteNotification,
-    deleteAllNotifications,
-
-    getNotificationById,
-  };
+  const value = useMemo(
+    () => ({
+      notifications,
+      unreadCount,
+      loading,
+      error,
+      fetchNotifications,
+      refreshNotifications,
+      markAsRead,
+      markAllAsRead,
+    }),
+    [
+      notifications,
+      unreadCount,
+      loading,
+      error,
+      fetchNotifications,
+      refreshNotifications,
+      markAsRead,
+      markAllAsRead,
+    ]
+  );
 
   return (
-    <NotificationContext.Provider value={value}>
+    <NotificationContext.Provider
+      value={value}
+    >
       {children}
     </NotificationContext.Provider>
   );
 }
 
-/*
-============================================================
-CUSTOM HOOK
-============================================================
-*/
-
-export const useNotifications = () => {
-  const context = useContext(NotificationContext);
+export function useNotifications() {
+  const context =
+    useContext(NotificationContext);
 
   if (!context) {
     throw new Error(
@@ -491,7 +285,4 @@ export const useNotifications = () => {
   }
 
   return context;
-};
-
-export default NotificationContext;
-export { NotificationProvider };
+}

@@ -1,61 +1,23 @@
 import express from "express";
 
 import {
-  getMyNotifications,
-  getUnreadNotificationCount,
+  getNotifications,
   getNotificationById,
+  createNotification,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  createNotification,
   deleteNotification,
-  deleteAllNotifications,
 } from "../controllers/notificationController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-/*
-============================================================
-GET ALL MY NOTIFICATIONS
-============================================================
-*/
-
 router.get(
   "/",
   protect,
-  getMyNotifications
+  getNotifications
 );
-
-/*
-============================================================
-GET UNREAD NOTIFICATION COUNT
-============================================================
-*/
-
-router.get(
-  "/unread-count",
-  protect,
-  getUnreadNotificationCount
-);
-
-/*
-============================================================
-MARK ALL NOTIFICATIONS AS READ
-============================================================
-*/
-
-router.patch(
-  "/read-all",
-  protect,
-  markAllNotificationsAsRead
-);
-
-/*
-============================================================
-CREATE NOTIFICATION
-============================================================
-*/
 
 router.post(
   "/",
@@ -63,11 +25,11 @@ router.post(
   createNotification
 );
 
-/*
-============================================================
-GET SINGLE NOTIFICATION
-============================================================
-*/
+router.patch(
+  "/read-all",
+  protect,
+  markAllNotificationsAsRead
+);
 
 router.get(
   "/:id",
@@ -75,40 +37,16 @@ router.get(
   getNotificationById
 );
 
-/*
-============================================================
-MARK ONE NOTIFICATION AS READ
-============================================================
-*/
-
 router.patch(
   "/:id/read",
   protect,
   markNotificationAsRead
 );
 
-/*
-============================================================
-DELETE ONE NOTIFICATION
-============================================================
-*/
-
 router.delete(
   "/:id",
   protect,
   deleteNotification
-);
-
-/*
-============================================================
-DELETE ALL NOTIFICATIONS
-============================================================
-*/
-
-router.delete(
-  "/",
-  protect,
-  deleteAllNotifications
 );
 
 export default router;

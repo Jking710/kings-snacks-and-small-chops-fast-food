@@ -14,59 +14,53 @@ const NotificationSchema = new mongoose.Schema(
       enum: [
         "welcome",
         "login",
-        "order",
         "cart",
+        "order",
         "payment",
         "delivery",
-        "general",
+        "info",
       ],
-      default: "general",
+      default: "info",
     },
 
     title: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 150,
     },
 
     message: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 1000,
     },
 
     link: {
       type: String,
       default: "",
       trim: true,
-      maxlength: 500,
-    },
-
-    isRead: {
-      type: Boolean,
-      default: false,
-    },
-
-    readAt: {
-      type: Date,
-      default: null,
     },
 
     metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+
+    isRead: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    readAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
-
-// ============================================================
-// INDEXES
-// ============================================================
 
 NotificationSchema.index({
   user: 1,
@@ -78,13 +72,5 @@ NotificationSchema.index({
   isRead: 1,
 });
 
-// ============================================================
-// MODEL
-// ============================================================
-
-// Prevent OverwriteModelError during nodemon restarts
-const Notification =
-  mongoose.models.Notification ||
+export default mongoose.models.Notification ||
   mongoose.model("Notification", NotificationSchema);
-
-export default Notification;
