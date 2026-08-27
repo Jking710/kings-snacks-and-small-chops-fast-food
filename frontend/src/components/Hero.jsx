@@ -12,7 +12,9 @@ function Hero() {
   return (
     <div className="min-h-[600px] bg-linear-to-br from-[#fff8ed] via-[#f6e2c4] to-[#d9825b] selection:transparent selection:text-current">
       <div className="flex lg:flex-row flex-col items-center justify-center p-10 lg:max-w-7xl mx-auto relative">
+
         <div className="lg:w-1/2 lg:space-y-6 lg:px-10 relative font-[Georgia] z-10">
+
           <div className="flex gap-0 lg:gap-4">
             <img
               src={playstore}
@@ -28,8 +30,9 @@ function Hero() {
           </div>
 
           <h1 className="text-4xl font-bold lg:text-6xl text-[#2b2118]">
-            Here we <span className="text-[#9a4d2f]">serve</span> and deliver
-            the <span className="text-[#8b3e24]">best snacks</span> and{" "}
+            Here we{" "}
+            <span className="text-[#9a4d2f]">serve</span> and deliver the{" "}
+            <span className="text-[#8b3e24]">best snacks</span> and{" "}
             <span className="text-[#c45b2c]">small chops.</span>
           </h1>
 
@@ -40,6 +43,7 @@ function Hero() {
           </p>
 
           <div className="flex gap-5 lg:gap-10">
+
             <Link
               to="/menu"
               className="
@@ -48,7 +52,7 @@ function Hero() {
                 rounded-full
                 px-6
                 py-3
-                sm:text-xl
+                sm:py-2
                 cursor-pointer
                 hover:bg-[#c45b2c]
                 hover:scale-105
@@ -71,7 +75,7 @@ function Hero() {
                 border-2
                 px-6
                 py-3
-                 sm:text-xl
+                sm:py-2
                 rounded-full
                 cursor-pointer
                 hover:scale-105
@@ -81,14 +85,19 @@ function Hero() {
             >
               Contact Us
             </Link>
+
           </div>
         </div>
 
         <div className="lg:w-1/2 w-[400px] relative">
-          <img src={pizza} className="rounded-full mx-auto spin" alt="Food" />
 
-          <div
-            className="
+          <img
+            src={pizza}
+            className="rounded-full mx-auto spin"
+            alt="Food"
+          />
+
+          <div className="
             hidden lg:flex
             bg-[#3a2920]/95
             gap-2
@@ -103,9 +112,12 @@ function Hero() {
             lg:bottom-9
             lg:right-13.5
             shadow-lg
-          "
-          >
-            <img src={alarm} alt="clock" className="w-12 h-10 lg:h-12" />
+          ">
+            <img
+              src={alarm}
+              alt="clock"
+              className="w-12 h-10 lg:h-12"
+            />
 
             <p className="leading-4 text-sm font-semibold text-white">
               Super Fast <br />
@@ -113,8 +125,7 @@ function Hero() {
             </p>
           </div>
 
-          <div
-            className="
+          <div className="
             hidden lg:flex
             bg-[#3a2920]/95
             gap-2
@@ -129,9 +140,12 @@ function Hero() {
             lg:bottom-79
             lg:right-15
             shadow-lg
-          "
-          >
-            <img src={discount} alt="discount" className="w-12 h-10 lg:h-12" />
+          ">
+            <img
+              src={discount}
+              alt="discount"
+              className="w-12 h-10 lg:h-12"
+            />
 
             <p className="leading-4 text-sm font-semibold text-white">
               5% Discount <br />
@@ -139,8 +153,7 @@ function Hero() {
             </p>
           </div>
 
-          <div
-            className="
+          <div className="
             hidden lg:flex
             bg-[#3a2920]/95
             gap-2
@@ -155,8 +168,7 @@ function Hero() {
             lg:bottom-80
             lg:right-91
             shadow-lg
-          "
-          >
+          ">
             <img
               src={cs}
               alt="customer service"
@@ -168,7 +180,9 @@ function Hero() {
               Customer Service
             </p>
           </div>
+
         </div>
+
       </div>
     </div>
   );
