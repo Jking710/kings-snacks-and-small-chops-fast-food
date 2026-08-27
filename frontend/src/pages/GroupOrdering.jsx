@@ -131,7 +131,7 @@ function GroupOrdering() {
     setError("");
 
     const data = await request(
-      `/api/group-orders/${group.groupCode}`
+      `/group-orders/${group.groupCode}`
     );
 
     setGroup(data.group);

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function ResetPassword() {
   const [formData, setFormData] = useState({
@@ -114,7 +114,7 @@ function ResetPassword() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/api/auth/reset-password`,
+        `${API_BASE}/auth/reset-password`,
         {
           method: "POST",
           headers: {

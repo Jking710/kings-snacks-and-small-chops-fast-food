@@ -5,7 +5,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AlertCircle, ArrowLeft, RefreshCw } from "lucide-react";
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function VerifyOTP() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -102,7 +102,7 @@ function VerifyOTP() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/api/auth/verify-otp`,
+        `${API_BASE}/auth/verify-otp`,
         {
           method: "POST",
           headers: {
@@ -152,7 +152,7 @@ function VerifyOTP() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/api/auth/forgot-password`,
+        `${API_BASE}/auth/forgot-password`,
         {
           method: "POST",
           headers: {
