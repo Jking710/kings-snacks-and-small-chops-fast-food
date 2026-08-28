@@ -34,6 +34,7 @@ useState(false);
 
 const notificationRef = useRef(null);
 const userMenuRef = useRef(null);
+const mobileUserMenuRef = useRef(null);
 const specialFeaturesRef = useRef(null);
 const popupTimerRef = useRef(null);
 
@@ -74,10 +75,13 @@ notificationRef.current &&
 setNotificationOpen(false);
 }
 
-  if (
-    userMenuRef.current &&
-    !userMenuRef.current.contains(event.target)
-  ) {
+  const clickedInsideDesktopUserMenu =
+    userMenuRef.current && userMenuRef.current.contains(event.target);
+  const clickedInsideMobileUserMenu =
+    mobileUserMenuRef.current &&
+    mobileUserMenuRef.current.contains(event.target);
+
+  if (!clickedInsideDesktopUserMenu && !clickedInsideMobileUserMenu) {
     setUserMenuOpen(false);
   }
 
@@ -398,7 +402,7 @@ className={`relative z-50 w-full border-b border-[#ead9cd] bg-[#f6eee8] transiti
         {/* MOBILE PROFILE BUTTON */}
 
         {isAuthenticated && user ? (
-          <div ref={userMenuRef} className="relative">
+          <div ref={mobileUserMenuRef} className="relative">
             <button
               type="button"
               onClick={handleMobileProfileClick}
