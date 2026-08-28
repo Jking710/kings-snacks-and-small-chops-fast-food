@@ -33,7 +33,8 @@ function Navbar() {
     useState(false);
 
   const notificationRef = useRef(null);
-  const userMenuRef = useRef(null);
+  const mobileUserMenuRef = useRef(null);
+  const desktopUserMenuRef = useRef(null);
   const specialFeaturesRef = useRef(null);
   const popupTimerRef = useRef(null);
 
@@ -73,7 +74,17 @@ function Navbar() {
         setNotificationOpen(false);
       }
 
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+      if (
+        mobileUserMenuRef.current &&
+        !mobileUserMenuRef.current.contains(event.target)
+      ) {
+        setUserMenuOpen(false);
+      }
+
+      if (
+        desktopUserMenuRef.current &&
+        !desktopUserMenuRef.current.contains(event.target)
+      ) {
         setUserMenuOpen(false);
       }
 
@@ -112,7 +123,9 @@ function Navbar() {
           return;
         }
 
-        const newestUnread = list.find((notification) => !notification.isRead);
+        const newestUnread = list.find(
+          (notification) => !notification.isRead
+        );
 
         if (!newestUnread) {
           return;
@@ -159,14 +172,28 @@ function Navbar() {
     setMobileSpecialFeaturesOpen(false);
   };
 
-  const closeMobileProfileMenu = () => {
-    setUserMenuOpen(false);
-    setNotificationOpen(false);
-    setMobileNavOpen(false);
-  };
-
   const handleProtectedNavigation = (path) => {
     closeMenus();
+
+    if (!isAuthenticated) {
+      navigate("/login", {
+        state: {
+          from: {
+            pathname: path,
+          },
+        },
+      });
+
+      return;
+    }
+
+    navigate(path);
+  };
+
+  const handleMobileMenuNavigation = (path) => {
+    setUserMenuOpen(false);
+    setMobileNavOpen(false);
+    setMobileSpecialFeaturesOpen(false);
 
     if (!isAuthenticated) {
       navigate("/login", {
@@ -235,9 +262,11 @@ function Navbar() {
   };
 
   const handleMobileNotificationClick = () => {
-    setUserMenuOpen(false);
-    setNotificationOpen(false);
     setMobileNavOpen(false);
+    setUserMenuOpen(false);
+    setMobileSpecialFeaturesOpen(false);
+    setNotificationOpen(false);
+
     navigate("/notifications");
   };
 
@@ -293,7 +322,7 @@ function Navbar() {
       }`}
     >
       {notificationPopup && (
-        <div className="fixed right-5 top-5 z-50 w-[min(380px,calc(100vw-32px))]">
+        <div className="fixed right-5 top-5 z-100 w-[min(380px,calc(100vw-32px))]">
           <div className="overflow-hidden rounded-2xl border border-[#ead9cd] bg-white shadow-2xl">
             <div className="flex items-start gap-3 p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f6eee8] text-[#8b563b]">
@@ -347,7 +376,9 @@ function Navbar() {
       )}
 
       <div className="mx-auto max-w-7xl px-4 md:px-10">
-        {/* MOBILE HEADER */}
+        {/* ======================================================
+            MOBILE HEADER
+        ====================================================== */}
 
         <div className="flex items-center justify-between md:hidden">
           <Link to="/" className="flex items-center gap-1 font-semibold">
@@ -368,7 +399,7 @@ function Navbar() {
             {/* MOBILE PROFILE BUTTON */}
 
             {isAuthenticated && user ? (
-              <div ref={userMenuRef} className="relative">
+              <div ref={mobileUserMenuRef} className="relative">
                 <button
                   type="button"
                   onClick={handleMobileProfileClick}
@@ -393,12 +424,8 @@ function Navbar() {
                   )}
                 </button>
 
-                {/* MOBILE PROFILE DROPDOWN */}
-
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-xl border border-[#ead9cd] bg-white py-2 text-left shadow-xl">
-                    {/* USER DETAILS */}
-
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-[#ead9cd] bg-white py-2 text-left shadow-xl">
                     <div className="border-b border-gray-100 px-4 py-3">
                       <div className="flex items-center gap-3">
                         {user.profilePicture ? (
@@ -425,99 +452,66 @@ function Navbar() {
                       </div>
                     </div>
 
-                    {/* MY PROFILE */}
-
-                    <Link
-                      to="/profile"
-                      onClick={closeMobileProfileMenu}
-                      className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
-                        isActive("/profile")
-                          ? "bg-[#f6eee8] text-[#8b563b]"
-                          : "text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                      }`}
+                    <button
+                      type="button"
+                      onClick={() => handleMobileMenuNavigation("/profile")}
+                      className="flex w-full items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
                     >
                       <User className="h-4 w-4" />
                       My Profile
-                    </Link>
-
-                    {/* NOTIFICATIONS */}
+                    </button>
 
                     <button
                       type="button"
-                      onClick={handleMobileNotificationClick}
-                      className={`flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm transition-colors ${
-                        isActive("/notifications")
-                          ? "bg-[#f6eee8] text-[#8b563b]"
-                          : "text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                      }`}
-                    >
-                      <Bell
-                        className={`h-4 w-4 ${
-                          unreadCount > 0 ? "animate-pulse" : ""
-                        }`}
-                      />
-
-                      <span>Notifications</span>
-
-                      {unreadCount > 0 && (
-                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#9a5f3d] px-1 text-[11px] font-bold text-white">
-                          {unreadCount > 99 ? "99+" : unreadCount}
-                        </span>
-                      )}
-                    </button>
-
-                    {/* MY CART */}
-
-                    <Link
-                      to="/cart"
-                      onClick={closeMobileProfileMenu}
-                      className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
-                        isActive("/cart")
-                          ? "bg-[#f6eee8] text-[#8b563b]"
-                          : "text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                      }`}
+                      onClick={() => handleMobileMenuNavigation("/cart")}
+                      className="flex w-full items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
                     >
                       <ShoppingCart className="h-4 w-4" />
-
-                      <span>My Cart</span>
+                      My Cart
 
                       {totalItems > 0 && (
                         <span className="ml-auto rounded-full bg-[#9a5f3d] px-2 py-0.5 text-xs font-bold text-white">
                           {totalItems}
                         </span>
                       )}
-                    </Link>
+                    </button>
 
-                    {/* ORDER HISTORY */}
-
-                    <Link
-                      to="/order-history"
-                      onClick={closeMobileProfileMenu}
-                      className={`flex items-center gap-2 px-4 py-3 text-sm transition-colors ${
-                        isActive("/order-history")
-                          ? "bg-[#f6eee8] text-[#8b563b]"
-                          : "text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
-                      }`}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleMobileMenuNavigation("/order-history")
+                      }
+                      className="flex w-full items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-[#f6eee8] hover:text-[#8b563b]"
                     >
                       <ClipboardList className="h-4 w-4" />
                       Order History
-                    </Link>
-
-                    {/* SIGN OUT */}
-
-                    <div className="mt-1 border-t border-gray-100 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm text-[#8b563b] transition-colors hover:bg-[#f3e1d8]"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sign Out
-                      </button>
-                    </div>
+                    </button>
                   </div>
                 )}
               </div>
+            ) : null}
+
+            {/* MOBILE NOTIFICATIONS */}
+
+            {isAuthenticated && user ? (
+              <button
+                type="button"
+                onClick={handleMobileNotificationClick}
+                className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-gray-700 transition-colors hover:bg-[#ead9cd] hover:text-[#8b563b]"
+                aria-label="Notifications"
+              >
+                <Bell
+                  className={`h-5 w-5 ${
+                    unreadCount > 0 ? "animate-pulse" : ""
+                  }`}
+                />
+
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#9a5f3d] px-1 text-[10px] font-bold text-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
             ) : null}
 
             {/* MOBILE CART */}
@@ -544,7 +538,6 @@ function Navbar() {
                 setMobileNavOpen((previous) => !previous);
                 setMobileSpecialFeaturesOpen(false);
                 setUserMenuOpen(false);
-                setNotificationOpen(false);
               }}
               className="cursor-pointer text-gray-700 transition-colors hover:text-[#8b563b]"
               aria-label="Toggle mobile navigation"
@@ -559,7 +552,9 @@ function Navbar() {
           </div>
         </div>
 
-        {/* MOBILE MENU */}
+        {/* ======================================================
+            MOBILE MENU
+        ====================================================== */}
 
         {mobileNavOpen && (
           <ul className="mt-1 flex flex-col gap-1 rounded-b-xl border-t border-[#ead9cd] bg-[#f6eee8] p-4 text-center text-lg font-semibold md:hidden">
@@ -631,9 +626,21 @@ function Navbar() {
               )}
             </li>
 
-            {/* MOBILE AUTH */}
+            {/* MOBILE AUTH LINKS */}
 
-            {!isAuthenticated && (
+            {isAuthenticated ? (
+              <>
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full rounded-lg px-4 py-2 font-semibold text-[#8b563b] transition-all hover:bg-[#f3e1d8]"
+                  >
+                    Sign Out
+                  </button>
+                </li>
+              </>
+            ) : (
               <li>
                 <Link
                   to="/login"
@@ -647,7 +654,9 @@ function Navbar() {
           </ul>
         )}
 
-        {/* DESKTOP NAV */}
+        {/* ======================================================
+            DESKTOP NAV
+        ====================================================== */}
 
         <div className="hidden items-center justify-between md:flex">
           <Link to="/" className="flex items-center gap-1 font-semibold">
@@ -709,6 +718,7 @@ function Navbar() {
                   aria-expanded={specialFeaturesOpen}
                 >
                   Special Features
+
                   <ChevronDown
                     className={`h-4 w-4 transition-transform duration-200 ${
                       specialFeaturesOpen ? "rotate-180" : ""
@@ -752,7 +762,9 @@ function Navbar() {
                             index > 0 ? "border-t border-gray-100" : ""
                           }`}
                         >
-                          <p className="text-sm font-bold">{feature.title}</p>
+                          <p className="text-sm font-bold">
+                            {feature.title}
+                          </p>
 
                           <p className="mt-1 text-xs text-gray-400">
                             {feature.description}
@@ -785,9 +797,7 @@ function Navbar() {
 
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2">
-                {/* DESKTOP USER MENU */}
-
-                <div ref={userMenuRef} className="relative">
+                <div ref={desktopUserMenuRef} className="relative">
                   <button
                     type="button"
                     onClick={() => {
@@ -823,7 +833,9 @@ function Navbar() {
                   {userMenuOpen && (
                     <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-[#ead9cd] bg-white py-2 shadow-lg">
                       <div className="border-b border-gray-100 px-4 py-2">
-                        <p className="text-xs text-gray-500">Signed in as</p>
+                        <p className="text-xs text-gray-500">
+                          Signed in as
+                        </p>
 
                         <p className="truncate text-sm font-semibold text-gray-800">
                           {user.email}
@@ -846,6 +858,7 @@ function Navbar() {
                       >
                         <ShoppingCart className="h-4 w-4" />
                         My Cart
+
                         {totalItems > 0 && ` (${totalItems})`}
                       </Link>
 
