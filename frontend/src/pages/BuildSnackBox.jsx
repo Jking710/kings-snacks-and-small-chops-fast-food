@@ -209,7 +209,7 @@ function BuildSnackBox() {
             </p>
 
             <h1 className="text-4xl lg:text-5xl font-bold font-['Georgia']">
-              Build Your Snack Box 🎁
+              Build Your Snack Box
             </h1>
 
             <p className="text-[#fff0e5] mt-4 text-base lg:text-lg">

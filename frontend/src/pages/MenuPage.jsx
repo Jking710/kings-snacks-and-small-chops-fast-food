@@ -189,7 +189,7 @@ function MenuPage() {
               </p>
 
               <h2 className="text-2xl lg:text-3xl font-bold font-['Georgia'] mt-1">
-                🎁 Build Your Snack Box
+                Build Your Snack Box
               </h2>
 
               <p className="text-[#fff0e5] mt-2 text-sm lg:text-base">
