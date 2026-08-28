@@ -76,7 +76,7 @@ function GroupOrdering() {
       setError("");
       setSuccess("");
 
-      const data = await request("/api/group-orders/create", {
+      const data = await request("/group-orders/create", {
         method: "POST",
         body: JSON.stringify({
           groupName,
