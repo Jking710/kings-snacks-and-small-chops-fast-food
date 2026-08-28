@@ -199,7 +199,7 @@ function MenuPage() {
             </div>
 
             <span className="bg-[#faf9f6] text-[#8b3e24] px-6 py-3 rounded-xl font-bold whitespace-nowrap">
-              Build My Box →
+              Click Here
             </span>
 
           </div>
