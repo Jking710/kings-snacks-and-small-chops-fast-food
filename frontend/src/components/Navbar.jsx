@@ -74,7 +74,10 @@ notificationRef.current &&
 setNotificationOpen(false);
 }
 
-  if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+  if (
+    userMenuRef.current &&
+    !userMenuRef.current.contains(event.target)
+  ) {
     setUserMenuOpen(false);
   }
 
@@ -189,33 +192,6 @@ navigate(path);
 
 };
 
-const handleMobileProfileNavigation = () => {
-setUserMenuOpen(false);
-setNotificationOpen(false);
-setMobileNavOpen(false);
-
-navigate("/profile");
-
-};
-
-const handleMobileNotificationClick = () => {
-setUserMenuOpen(false);
-setNotificationOpen(false);
-setMobileNavOpen(false);
-
-navigate("/notifications");
-
-};
-
-const handleMobileOrderHistoryNavigation = () => {
-setUserMenuOpen(false);
-setNotificationOpen(false);
-setMobileNavOpen(false);
-
-navigate("/order-history");
-
-};
-
 const handleSpecialFeaturesClick = () => {
 if (!isAuthenticated) {
 closeMenus();
@@ -268,6 +244,36 @@ navigate("/");
 const handleMobileProfileClick = () => {
 setUserMenuOpen((previous) => !previous);
 setNotificationOpen(false);
+};
+
+const handleMobileProfileNavigation = () => {
+setUserMenuOpen(false);
+setNotificationOpen(false);
+setMobileNavOpen(false);
+setMobileSpecialFeaturesOpen(false);
+
+navigate("/profile");
+
+};
+
+const handleMobileNotificationClick = () => {
+setUserMenuOpen(false);
+setNotificationOpen(false);
+setMobileNavOpen(false);
+setMobileSpecialFeaturesOpen(false);
+
+navigate("/notifications");
+
+};
+
+const handleMobileOrderHistoryNavigation = () => {
+setUserMenuOpen(false);
+setNotificationOpen(false);
+setMobileNavOpen(false);
+setMobileSpecialFeaturesOpen(false);
+
+navigate("/order-history");
+
 };
 
 const isActive = (path) => location.pathname === path;
@@ -830,9 +836,7 @@ className={`relative z-50 w-full border-b border-[#ead9cd] bg-[#f6eee8] transiti
               {userMenuOpen && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-[#ead9cd] bg-white py-2 shadow-lg">
                   <div className="border-b border-gray-100 px-4 py-2">
-                    <p className="text-xs text-gray-500">
-                      Signed in as
-                    </p>
+                    <p className="text-xs text-gray-500">Signed in as</p>
 
                     <p className="truncate text-sm font-semibold text-gray-800">
                       {user.email}
