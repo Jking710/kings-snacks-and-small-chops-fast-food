@@ -285,9 +285,9 @@ function CartPage() {
 
                 <div className="bg-[#f3ebe5] rounded-xl p-3 mt-4 text-xs text-[#6b4226]">
                   🚚 Estimated delivery:{" "}
-                  <strong>25–35 minutes</strong>
+                  <strong>30–45 minutes</strong>
                   <br />
-                  📍 Delivering within Lagos Island & Mainland
+                  📍 Delivering within Lagos Island & Mainland, Port-Harcourt and Abuja
                 </div>
 
                 <button
