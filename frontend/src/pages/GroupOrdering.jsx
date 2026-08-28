@@ -16,8 +16,7 @@ import { useCart } from "../CartContext.jsx";
 import { useAuth } from "../AuthContext.jsx";
 import menuItems from "../data/menuItems.js";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function GroupOrdering() {
   const navigate = useNavigate();
@@ -47,11 +46,18 @@ function GroupOrdering() {
   }, [isAuthenticated, navigate]);
 
   const request = async (url, options = {}) => {
+    const token = localStorage.getItem("kc_token");
+
     const response = await fetch(`${API_URL}${url}`, {
       ...options,
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
+        ...(token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {}),
         ...(options.headers || {}),
       },
     });
@@ -123,44 +129,41 @@ function GroupOrdering() {
     }
   };
 
- const refreshGroup = useCallback(async () => {
-  if (!group?.groupCode) return;
+  const refreshGroup = useCallback(async () => {
+    if (!group?.groupCode) return;
 
-  try {
-    setRefreshing(true);
-    setError("");
+    try {
+      setRefreshing(true);
+      setError("");
 
-    const data = await request(
-      `/group-orders/${group.groupCode}`
-    );
+      const data = await request(`/group-orders/${group.groupCode}`);
 
-    setGroup(data.group);
-    setGroupTotal(data.total);
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setRefreshing(false);
-  }
-}, [group?.groupCode]);
+      setGroup(data.group);
+      setGroupTotal(data.total);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [group?.groupCode]);
 
-useEffect(() => {
-  if (!group?.groupCode) return;
+  useEffect(() => {
+    if (!group?.groupCode) return;
 
-  const interval = setInterval(() => {
-    refreshGroup();
-  }, 5000);
+    const interval = setInterval(() => {
+      refreshGroup();
+    }, 5000);
 
-  return () => clearInterval(interval);
-}, [group?.groupCode, refreshGroup]);
+    return () => clearInterval(interval);
+  }, [group?.groupCode, refreshGroup]);
 
   const calculateTotal = (currentGroup) => {
     return currentGroup.members.reduce((total, member) => {
       return (
         total +
         member.items.reduce(
-          (memberTotal, item) =>
-            memberTotal + item.price * item.quantity,
-          0
+          (memberTotal, item) => memberTotal + item.price * item.quantity,
+          0,
         )
       );
     }, 0);
@@ -172,19 +175,16 @@ useEffect(() => {
     try {
       setError("");
 
-      const data = await request(
-        `/group-orders/${group.groupCode}/items`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            img: item.img,
-            quantity: 1,
-          }),
-        }
-      );
+      const data = await request(`/group-orders/${group.groupCode}/items`, {
+        method: "POST",
+        body: JSON.stringify({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          img: item.img,
+          quantity: 1,
+        }),
+      });
 
       setGroup(data.group);
       setGroupTotal(data.total);
@@ -204,7 +204,7 @@ useEffect(() => {
           body: JSON.stringify({
             quantity,
           }),
-        }
+        },
       );
 
       setGroup(data.group);
@@ -222,7 +222,7 @@ useEffect(() => {
         `/group-orders/${group.groupCode}/items/${itemId}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       setGroup(data.group);
@@ -238,12 +238,9 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      await request(
-        `/group-orders/${group.groupCode}/leave`,
-        {
-          method: "DELETE",
-        }
-      );
+      await request(`/group-orders/${group.groupCode}/leave`, {
+        method: "DELETE",
+      });
 
       setGroup(null);
       setGroupTotal(0);
@@ -287,9 +284,7 @@ useEffect(() => {
   };
 
   const currentMember = group?.members.find(
-    (member) =>
-      member.user?._id === user?._id ||
-      member.user === user?._id
+    (member) => member.user?._id === user?._id || member.user === user?._id,
   );
 
   const memberItems = currentMember?.items || [];
@@ -300,10 +295,8 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
       <div className="bg-linear-to-br from-[#7c2d12] via-[#c2410c] to-[#9f1239] text-white">
         <div className="max-w-7xl mx-auto px-5 py-10">
-
           <Link
             to="/menu"
             className="inline-flex items-center gap-2 text-orange-100 hover:text-white mb-6"
@@ -329,15 +322,13 @@ useEffect(() => {
           </div>
 
           <p className="text-orange-50 mt-4 max-w-2xl">
-            Order snacks together with friends, classmates or family.
-            Everyone chooses their own snacks and everything appears in one
-            shared order.
+            Order snacks together with friends, classmates or family. Everyone
+            chooses their own snacks and everything appears in one shared order.
           </p>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto px-4 py-10">
-
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
             {error}
@@ -352,9 +343,7 @@ useEffect(() => {
 
         {!group ? (
           <div className="max-w-xl mx-auto">
-
             <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-7">
-
               <div className="text-center mb-7">
                 <div className="w-16 h-16 mx-auto bg-orange-100 text-orange-600 rounded-full flex items-center justify-center">
                   <Users className="w-8 h-8" />
@@ -448,19 +437,14 @@ useEffect(() => {
                   </button>
                 </>
               )}
-
             </div>
           </div>
         ) : (
           <>
             <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 mb-8">
-
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-
                 <div>
-                  <p className="text-sm text-gray-500">
-                    Group Order
-                  </p>
+                  <p className="text-sm text-gray-500">Group Order</p>
 
                   <h2 className="text-2xl font-bold text-gray-800 font-['Georgia']">
                     {group.groupName}
@@ -473,11 +457,8 @@ useEffect(() => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-
                   <div className="bg-orange-50 border border-orange-200 rounded-xl px-5 py-3">
-                    <p className="text-xs text-gray-500">
-                      Group Code
-                    </p>
+                    <p className="text-xs text-gray-500">Group Code</p>
 
                     <p className="font-bold text-orange-600 tracking-widest">
                       {group.groupCode}
@@ -501,9 +482,7 @@ useEffect(() => {
                     className="w-12 h-12 bg-gray-100 text-gray-700 rounded-xl flex items-center justify-center hover:bg-gray-200 cursor-pointer"
                   >
                     <RefreshCw
-                      className={`w-5 h-5 ${
-                        refreshing ? "animate-spin" : ""
-                      }`}
+                      className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}
                     />
                   </button>
 
@@ -516,15 +495,12 @@ useEffect(() => {
                       Leave
                     </button>
                   )}
-
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
               <div className="lg:col-span-2">
-
                 <div className="mb-5">
                   <p className="text-orange-600 text-sm font-semibold uppercase tracking-wider">
                     Choose your snacks
@@ -536,7 +512,6 @@ useEffect(() => {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-
                   {menuItems.map((item) => (
                     <div
                       key={item.id}
@@ -567,16 +542,12 @@ useEffect(() => {
                       </div>
                     </div>
                   ))}
-
                 </div>
               </div>
 
               <div>
-
                 <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 sticky top-24">
-
                   <div className="flex items-center justify-between mb-5">
-
                     <div className="flex items-center gap-2">
                       <Users className="w-5 h-5 text-orange-600" />
 
@@ -588,15 +559,13 @@ useEffect(() => {
                     <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
                       {group.members.length}
                     </span>
-
                   </div>
 
                   <div className="space-y-3 mb-6">
                     {group.members.map((member) => {
                       const memberTotal = member.items.reduce(
-                        (sum, item) =>
-                          sum + item.price * item.quantity,
-                        0
+                        (sum, item) => sum + item.price * item.quantity,
+                        0,
                       );
 
                       return (
@@ -605,11 +574,9 @@ useEffect(() => {
                           className="bg-gray-50 rounded-xl p-3"
                         >
                           <div className="flex items-center justify-between">
-
                             <div>
                               <p className="font-semibold text-gray-800 text-sm">
                                 {member.firstName} {member.lastName}
-
                                 {member.user?._id === user?._id && (
                                   <span className="text-orange-600 ml-1">
                                     (You)
@@ -619,16 +586,13 @@ useEffect(() => {
 
                               <p className="text-xs text-gray-400">
                                 {member.items.length}{" "}
-                                {member.items.length === 1
-                                  ? "item"
-                                  : "items"}
+                                {member.items.length === 1 ? "item" : "items"}
                               </p>
                             </div>
 
                             <span className="font-bold text-orange-600 text-sm">
                               ₦{memberTotal.toLocaleString()}
                             </span>
-
                           </div>
 
                           {member.items.length > 0 && (
@@ -658,7 +622,6 @@ useEffect(() => {
                   </div>
 
                   <div className="border-t border-gray-100 pt-5">
-
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-gray-600">
                         Group Total
@@ -676,16 +639,14 @@ useEffect(() => {
                     >
                       Add Group Order to Cart
                     </button>
-
                   </div>
 
                   <div className="mt-5 bg-orange-50 rounded-xl p-4">
                     <p className="text-xs text-orange-700">
-                      Share the group code with your friends. They need to
-                      log in before joining.
+                      Share the group code with your friends. They need to log
+                      in before joining.
                     </p>
                   </div>
-
                 </div>
               </div>
             </div>
