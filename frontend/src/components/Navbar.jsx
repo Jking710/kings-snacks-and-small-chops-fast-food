@@ -447,17 +447,6 @@ function Navbar() {
                       <ClipboardList className="h-4 w-4" />
                       Order History
                     </Link>
-
-                    <div className="mt-1 border-t border-gray-100 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-sm text-[#8b563b] hover:bg-[#f3e1d8]"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sign Out
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
@@ -579,16 +568,6 @@ function Navbar() {
 
             {isAuthenticated ? (
               <>
-                <li>
-                  <Link
-                    to="/order-history"
-                    onClick={() => setMobileNavOpen(false)}
-                    className="flex items-center justify-center gap-2 rounded-lg px-4 py-2 hover:bg-[#ead9cd] hover:text-[#8b563b]"
-                  >
-                    <ClipboardList size={19} />
-                    Order History
-                  </Link>
-                </li>
 
                 <li>
                   <Link
