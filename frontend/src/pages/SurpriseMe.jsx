@@ -15,21 +15,18 @@ const surpriseTypes = [
   {
     id: "sweet",
     title: "Sweet Treat",
-    emoji: "🍩",
     description: "Random sweet snacks and pastries",
     categories: ["Pastries"],
   },
   {
     id: "savory",
     title: "Savory Snacks",
-    emoji: "🌯",
     description: "A surprise mix of savory snacks",
     categories: ["Pizza", "Burgers", "Shawarma", "Small Chops"],
   },
   {
     id: "drink",
     title: "Snack + Drink",
-    emoji: "🥤",
     description: "A snack paired with a refreshing drink",
     categories: [
       "Pizza",
@@ -43,7 +40,6 @@ const surpriseTypes = [
   {
     id: "full",
     title: "Full Surprise",
-    emoji: "🎁",
     description: "Let us choose everything for you",
     categories: [
       "Pizza",
@@ -233,7 +229,6 @@ function SurpriseMe() {
                       : "border-gray-100 bg-white hover:border-orange-200 hover:bg-orange-50/50"
                   }`}
                 >
-                  <div className="text-4xl mb-3">{type.emoji}</div>
 
                   <h3 className="font-bold text-gray-800 font-['Georgia']">
                     {type.title}
@@ -269,7 +264,7 @@ function SurpriseMe() {
           <div className="mt-8">
             <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 mb-6 text-center">
               <p className="text-orange-700 font-semibold text-sm">
-                Your surprise is ready! 🎉
+                Your surprise is ready
               </p>
 
               <h2 className="text-2xl font-bold text-gray-800 font-['Georgia'] mt-1">
