@@ -53,14 +53,14 @@ import ProtectedRoute from "./ProtectedRoute.jsx";
 
 function HomePage() {
   return (
-    <div className="w-full max-w-full overflow-x-hidden">
+    <>
       <Hero />
       <Main />
       <Partners />
       <Features />
       <Testimonials />
       <Contacts />
-    </div>
+    </>
   );
 }
 
