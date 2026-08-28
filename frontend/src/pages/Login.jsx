@@ -328,7 +328,7 @@ function Login() {
           <div className="px-8 py-8">
 
             <h2 className="text-2xl font-bold text-[#3b2418] mb-6 font-['Georgia']">
-              Welcome Back! 👋
+              Welcome Back
             </h2>
 
             {/* Error */}
