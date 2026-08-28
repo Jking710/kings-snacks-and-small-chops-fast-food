@@ -84,7 +84,7 @@ function Hero() {
           </div>
         </div>
 
-        <div className="lg:w-1/2 w-full max-w-[400px] mx-auto relative">
+        <div className="lg:w-1/2 w-full max-w-[600px] mx-auto relative">
           <img src={pizza} className="rounded-full mx-auto spin" alt="Food" />
 
           <div
