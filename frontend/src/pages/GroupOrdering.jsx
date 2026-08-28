@@ -17,7 +17,7 @@ import { useAuth } from "../AuthContext.jsx";
 import menuItems from "../data/menuItems.js";
 
 const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 function GroupOrdering() {
   const navigate = useNavigate();
@@ -105,7 +105,7 @@ function GroupOrdering() {
       setError("");
       setSuccess("");
 
-      const data = await request("/api/group-orders/join", {
+      const data = await request("/group-orders/join", {
         method: "POST",
         body: JSON.stringify({
           groupCode: groupCodeInput.trim().toUpperCase(),
@@ -173,7 +173,7 @@ useEffect(() => {
       setError("");
 
       const data = await request(
-        `/api/group-orders/${group.groupCode}/items`,
+        `/group-orders/${group.groupCode}/items`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -198,7 +198,7 @@ useEffect(() => {
 
     try {
       const data = await request(
-        `/api/group-orders/${group.groupCode}/items/${itemId}`,
+        `/group-orders/${group.groupCode}/items/${itemId}`,
         {
           method: "PATCH",
           body: JSON.stringify({
@@ -219,7 +219,7 @@ useEffect(() => {
 
     try {
       const data = await request(
-        `/api/group-orders/${group.groupCode}/items/${itemId}`,
+        `/group-orders/${group.groupCode}/items/${itemId}`,
         {
           method: "DELETE",
         }
@@ -239,7 +239,7 @@ useEffect(() => {
       setLoading(true);
 
       await request(
-        `/api/group-orders/${group.groupCode}/leave`,
+        `/group-orders/${group.groupCode}/leave`,
         {
           method: "DELETE",
         }
