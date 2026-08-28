@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 function Hero() {
   return (
     <div className="min-h-[600px] bg-linear-to-br from-[#fff8ed] via-[#f6e2c4] to-[#d9825b] selection:transparent selection:text-current">
-      <div className="flex lg:flex-row flex-col items-center justify-center p-10 lg:max-w-7xl mx-auto relative">
+      <div className="flex w-full max-w-full flex-col items-center justify-center px-4 py-10 lg:mx-auto lg:max-w-7xl lg:flex-row lg:p-10 relative">
         <div className="lg:w-1/2 lg:space-y-6 lg:px-10 relative font-[Georgia] z-10">
           <div className="flex gap-0 lg:gap-4">
             <img
@@ -84,8 +84,12 @@ function Hero() {
           </div>
         </div>
 
-        <div className="lg:w-1/2 w-[400px] relative">
-          <img src={pizza} className="rounded-full mx-auto spin" alt="Food" />
+        <div className="relative w-full max-w-[400px] lg:w-1/2">
+          <img
+            src={pizza}
+            className="mx-auto h-auto max-w-full rounded-full spin"
+            alt="Food"
+          />
 
           <div
             className="
