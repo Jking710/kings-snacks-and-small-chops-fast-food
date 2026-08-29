@@ -254,7 +254,6 @@ function SurpriseMe() {
             onClick={createSurprise}
             className="w-full max-w-xl mx-auto mt-8 bg-linear-to-r from-orange-600 to-rose-600 text-white py-4 rounded-xl font-bold text-lg hover:from-orange-700 hover:to-rose-700 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
           >
-            <Sparkles className="w-6 h-6" />
             Surprise Me
           </button>
         </div>
