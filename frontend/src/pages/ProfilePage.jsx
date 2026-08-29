@@ -1147,7 +1147,7 @@ function ProfilePage() {
 
           <h1 className="text-2xl font-bold font-['Georgia']">
             Welcome,{" "}
-            {formData.firstName} 👋
+            {formData.firstName} 
           </h1>
 
           <p className="text-[#ead9cc] text-sm mt-1">
@@ -1157,8 +1157,8 @@ function ProfilePage() {
           <span className="inline-block mt-3 bg-white/15 text-white text-xs font-semibold px-3 py-1 rounded-full border border-white/10">
             {user.authProvider ===
             "google"
-              ? "🔵 Google Account"
-              : "📧 Email Account"}
+              ? " Google Account"
+              : " Email Account"}
           </span>
         </div>
 
