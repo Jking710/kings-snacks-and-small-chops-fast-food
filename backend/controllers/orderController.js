@@ -227,22 +227,6 @@ export const getMyOrders = async (req, res) => {
           .toUpperCase()}`;
       }
 
-      /*
-      --------------------------------------------------------
-      ADD A SIMPLE FRONTEND FLAG
-      --------------------------------------------------------
-
-      true means the customer has already answered
-      the delivery confirmation question.
-
-      This lets OrderHistory hide:
-
-      Track Your Order
-      Confirm Delivery
-
-      after confirmation.
-      */
-
       orderObject.deliveryConfirmationCompleted =
         orderObject.deliveryConfirmed === true;
 
@@ -470,26 +454,26 @@ export const confirmDelivery = async (req, res) => {
         order,
       );
 
-    if (notificationData) {
-      try {
-        await Notification.create({
-          user: order.user,
-          type: "delivery",
-          title: notificationData.title,
-          message: notificationData.message,
-          link: `/order-history`,
-          metadata: {
-            orderId: order._id,
-            orderCode: order.orderCode,
-            orderStatus: order.orderStatus,
-          },
-          isRead: false,
-        });
-      } catch (notificationError) {
-        console.error("Order status notification error:", notificationError);
+      if (notificationData) {
+        try {
+          await Notification.create({
+            user: order.user,
+            type: "delivery",
+            title: notificationData.title,
+            message: notificationData.message,
+            link: `/order-history`,
+            metadata: {
+              orderId: order._id,
+              orderCode: order.orderCode,
+              orderStatus: order.orderStatus,
+            },
+            isRead: false,
+          });
+        } catch (notificationError) {
+          console.error("Order status notification error:", notificationError);
+        }
       }
     }
-  };
 
     console.log("✅ Delivery confirmation saved");
 

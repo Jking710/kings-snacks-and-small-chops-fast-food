@@ -69,16 +69,7 @@ router.post(
 // ============================================================
 // KORA CALLBACK
 // ============================================================
-//
-// Kora redirects the customer here after checkout.
-//
-// IMPORTANT:
-// Do NOT put protect middleware here.
-// Kora does not send your JWT cookie/token when calling
-// this backend callback.
-//
-// The callback verifies the payment directly with Kora.
-// ============================================================
+
 
 router.get(
   "/kora/callback",

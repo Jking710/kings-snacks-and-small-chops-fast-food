@@ -203,7 +203,7 @@ function ResetPassword() {
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
 
                 <h2 className="text-xl font-bold text-[#3b2418] font-['Georgia'] mb-2">
-                  Password Reset! 🎉
+                  Password Reset
                 </h2>
 
                 <p className="text-gray-500 text-sm mb-4">
@@ -226,7 +226,7 @@ function ResetPassword() {
                 <div className="mb-6">
 
                   <h2 className="text-2xl font-bold text-[#3b2418] font-['Georgia']">
-                    New Password 🔑
+                    New Password
                   </h2>
 
                   <p className="text-gray-500 text-sm mt-2">

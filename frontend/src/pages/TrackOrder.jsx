@@ -47,7 +47,7 @@ function TrackOrder() {
       const token = localStorage.getItem("kc_token");
 
       console.log(
-        "🔐 Track Order token:",
+        "Track Order token:",
         token ? "Token found" : "Token missing"
       );
 

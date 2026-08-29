@@ -693,17 +693,7 @@ export const verifyKoraPayment = async (req, res) => {
 // ============================================================
 // KORA WEBHOOK
 // ============================================================
-//
-// Kora signs ONLY req.body.data.
-// It does NOT sign the complete request body.
-//
-// Signature:
-// HMAC SHA256(JSON.stringify(req.body.data), KORA_SECRET_KEY)
-//
-// Kora documentation:
-// x-korapay-signature
-//
-// ============================================================
+
 
 export const handleKoraWebhook = async (req, res) => {
   try {
@@ -759,13 +749,7 @@ export const handleKoraWebhook = async (req, res) => {
     // ======================================================
     // GENERATE EXPECTED SIGNATURE
     // ======================================================
-    //
-    // IMPORTANT:
-    // Kora signs ONLY req.body.data.
-    //
-    // Do not use JSON.stringify(req.body)
-    //
-    // ======================================================
+
 
     const dataString = JSON.stringify(req.body.data);
 
@@ -977,15 +961,7 @@ export const handleKoraWebhook = async (req, res) => {
 // ============================================================
 // KORA CALLBACK
 // ============================================================
-//
-// Kora sends the customer here after checkout.
-//
-// This route MUST NOT use protect middleware.
-//
-// The customer should end up at:
-// Vercel /order-history
-//
-// ============================================================
+
 
 export const handleKoraCallback = async (req, res) => {
   try {
